@@ -54,7 +54,7 @@ void QMC_Init(void)
 {
 	uint8_t QMC_ID = 0;
 	QMC_ID = QMC_GetID();
-	printf("ID: 0x%X\r\n",QMC_ID); // 0x80
+	printf("QMC5883L ID: 0x%X\r\n",QMC_ID); // 0x80
 	
     /* 初始化 QMC： 
        配置寄存器1：连续模式 + 200Hz

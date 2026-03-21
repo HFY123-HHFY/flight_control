@@ -15,9 +15,9 @@ int main(void)
 		
 /*
 MPU6050:
-*/		
-	// mpu_dmp_get_data(&Pitch,&Roll,&Yaw);	    // 读取角度
-	// printf("%.2f, %.2f, %.2f\r\n",Pitch, Roll, Yaw);
+*/
+	mpu_angle(); // 读取MPU6050角度数据
+	printf("Pitch: %.2f, Roll :%.2f, Yaw: %.2f\r\n",Pitch, Roll, Yaw);
 		
 /*
 QMC5883L:
@@ -48,20 +48,23 @@ OLED:
 //	OLED_Printf(0,32,OLED_8X16,"BMP: %.2f",alt);
 //	OLED_Update();
 	
+	// OLED_Clear();
+	// OLED_Printf(0,0,OLED_8X16,"T:%d",Timer_Bsp_t);
+	// OLED_Printf(0, 16,  OLED_8X16, "speed:%d", speed_temp);
+	// OLED_Printf(0, 32, OLED_8X16, "Key:%d", NRF24L01_RxPacket[1]);
+	// OLED_Update();
+
 	OLED_Clear();
 	OLED_Printf(0,0,OLED_8X16,"T:%d",Timer_Bsp_t);
-	OLED_Printf(0, 16,  OLED_8X16, "speed:%d", speed_temp);
-	OLED_Printf(0, 32, OLED_8X16, "Key:%d", NRF24L01_RxPacket[1]);
-	OLED_Update();
-
-	// OLED_Clear();
-	// OLED_Printf(0,0,OLED_8X16,"P:%.1f",Pitch);
-	// OLED_Printf(64,0,OLED_8X16,"R:%.1f",Roll);
+	OLED_Printf(64,0,OLED_8X16,"F:%d",mpu_flag);
+	OLED_Printf(0,16,OLED_8X16,"Pitch:%.2f",Pitch);
+	OLED_Printf(0,32,OLED_8X16,"Roll:%.2f",Roll);
+	OLED_Printf(0,48,OLED_8X16,"Yaw: %.2f",Yaw);
 	// OLED_Printf(0,0,OLED_8X16,"FUS:%.1f",yaw_fused);
 	// OLED_Printf(0,16,OLED_8X16,"Yaw: %.2f",Yaw);
 	// OLED_Printf(0,32,OLED_8X16,"QMC: %.2f",Angle_XY);
 	// OLED_Printf(0,48,OLED_8X16,"BMP: %.2f",alt);
-	// OLED_Update();
+	OLED_Update();
 
 /*
 电机调试:

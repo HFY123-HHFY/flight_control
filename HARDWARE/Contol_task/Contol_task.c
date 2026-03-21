@@ -183,12 +183,10 @@ void EXTI9_5_IRQHandler(void)
 {
   if (EXTI_GetITStatus(EXTI_Line7) != RESET)
   {
-    if (MPU6050_INT == 1)
-    {
-        g_mpu_data_ready = 1;
-    }
-      EXTI_ClearITPendingBit(EXTI_Line7);
+    g_mpu_data_ready = 1;
+    mpu_flag = 1; // 设置MPU6050数据更新标志
   }
+  EXTI_ClearITPendingBit(EXTI_Line7);
 }
 
 // // QMC5883外部中断处理函数

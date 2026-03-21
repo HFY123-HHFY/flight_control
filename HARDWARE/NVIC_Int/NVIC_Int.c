@@ -8,7 +8,7 @@ short gyrox, gyroy, gyroz;        // 角速度,x轴、y轴、z轴角速度
 short aacx, aacy, aacz;           // 加速度 ,x轴、y轴、z轴加速度
 //short短整型
 
-int mpu_flag = 0; // MPU6050数据更新标志
+uint8_t volatile mpu_flag = 0; // MPU6050数据更新标志
 
  // MPU6050外部中断初始化
 void MPU6050_EXTI_Init(void)
@@ -56,4 +56,13 @@ void QMC_EXTI_Init(void)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x03;//子优先级3
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;//使能外部中断通道
 	NVIC_Init(&NVIC_InitStructure);//配置
+}
+
+void mpu_angle(void)
+{
+	if (mpu_flag == 1)
+	{
+		mpu_flag = 0; // 清除MPU6050数据更新标志
+		mpu_dmp_get_data(&Pitch,&Roll,&Yaw);	    // 读取角度
+	}	
 }
