@@ -10,6 +10,12 @@ void TIM3_IRQHandler(void)
         Count0++;
         time_t++;
 
+        if (Count0 >= 5)
+        {
+            Count0 = 0;
+            pid_task_flag = 1;
+        }
+        
         if (time_t >= 1000)
         {
             time_t = 0;

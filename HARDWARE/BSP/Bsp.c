@@ -13,7 +13,7 @@ void Bsp_Init(void)
 	Adc_Init();
 	
   usart_1_Init(9600); // 板载调试
-  // usart_3_Init(115200); // 蓝牙接口
+  usart_3_Init(115200); // 无线串口调试
 
   MyI2C_Init();
   delay_us(10);
@@ -23,12 +23,12 @@ void Bsp_Init(void)
   NRF24L01_Init(); // 初始化NRF24L01
 	
 
-	QMC_Init();
+	// QMC_Init();
 	// QMC_EXTI_Init();
 	
-  ControlTask_FusionInit(); // 卡尔曼滤波器初始化
+  // ControlTask_FusionInit(); // 卡尔曼滤波器初始化
 
-  BMP280Init();
+  // BMP280Init();
 
   MPU_Init(); // 初始化MPU6050
   mpu_dmp_init(); // 初始化MPU6050 DMP
@@ -36,4 +36,5 @@ void Bsp_Init(void)
 
   PWM_Init(PWM_TEST_ARR, PWM_TEST_PSC); // PWM初始化，20kHz（有刷电机）
   // PWM_Init(2000,840); // 频率50Hz，无刷电机
+  PID_Contorl_Init(); // PID控制初始化
 }

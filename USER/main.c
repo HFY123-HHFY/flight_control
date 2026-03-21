@@ -17,16 +17,22 @@ int main(void)
 MPU6050:
 */
 	mpu_angle(); // 读取MPU6050角度数据
-	printf("Pitch: %.2f, Roll :%.2f, Yaw: %.2f\r\n",Pitch, Roll, Yaw);
+	PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
+	
+	Set_PID(&pid_pitch, 5.0f, 0.00f, 1.0f); // 设置pitch环的PID参数
+	Set_PID(&pid_roll, 5.0f, 0.00f, 1.0f); // 设置roll环的PID参数
+
+	// printf("speed_temp: %d, pitch_out: %.2f, roll_out: %.2f, OUT: %.2f\r\n", 
+	// 	speed_temp, pid_pitch.output, pid_roll.output, speed_temp + pid_pitch.output + pid_roll.output);
+	// printf("Pitch: %.2f, out :%.2f, Kp: %.2f            Roll: %.2f, out :%.2f, Kp: %.2f\r\n",
+	// Pitch, pid_pitch.output , pid_pitch.kp, Roll, pid_roll.output , pid_roll.kp);
+	// printf("Pitch: %.2f, Roll :%.2f, Yaw: %.2f, Fused: %.2f\r\n",Pitch, Roll, Yaw, yaw_fused);
 		
 /*
 QMC5883L:
 */
 	// Angle_XY = QMC_Data();
 	// printf("%.2f\r\n",Angle_XY);
-
-	// ControlTask_FusionUpdate(); // 更新融合数据
- 	// yaw_fused = ControlTask_GetYawFused(); // 获取融合后的航向角
 	
 /*
 BMP280:
@@ -42,11 +48,23 @@ NRF24L01:
 /*
 OLED:
 */
-//	OLED_Clear();
+	OLED_Clear();
+	OLED_Printf(0,0,OLED_8X16,"USART_3_RX:%d",USART_3_RX);
 //	OLED_Printf(0,0,OLED_8X16,"T:%d",Timer_Bsp_t);
 //	OLED_Printf(0,16,OLED_8X16,"speed:%d",speed_temp);
 //	OLED_Printf(0,32,OLED_8X16,"BMP: %.2f",alt);
-//	OLED_Update();
+	OLED_Update();
+
+	if (uart3_flag == 1)
+	{
+		uart3_flag = 0;
+		float new_kp, new_ki, new_kd;
+		// 更新Pitch环
+        Set_PID(&pid_pitch, new_kp, new_ki, new_kd); 
+        // 更新Roll环
+        Set_PID(&pid_roll, new_kp, new_ki, new_kd);  
+	}
+	
 	
 	// OLED_Clear();
 	// OLED_Printf(0,0,OLED_8X16,"T:%d",Timer_Bsp_t);
@@ -54,34 +72,30 @@ OLED:
 	// OLED_Printf(0, 32, OLED_8X16, "Key:%d", NRF24L01_RxPacket[1]);
 	// OLED_Update();
 
-	OLED_Clear();
-	OLED_Printf(0,0,OLED_8X16,"T:%d",Timer_Bsp_t);
-	OLED_Printf(64,0,OLED_8X16,"F:%d",mpu_flag);
-	OLED_Printf(0,16,OLED_8X16,"Pitch:%.2f",Pitch);
-	OLED_Printf(0,32,OLED_8X16,"Roll:%.2f",Roll);
-	OLED_Printf(0,48,OLED_8X16,"Yaw: %.2f",Yaw);
-	// OLED_Printf(0,0,OLED_8X16,"FUS:%.1f",yaw_fused);
+	// OLED_Clear();
+	// OLED_Printf(0,0,OLED_8X16,"T:%d",Timer_Bsp_t);
+	// OLED_Printf(0,16,OLED_8X16,"Pitch:%.2f",Pitch);
+	// OLED_Printf(0,32,OLED_8X16,"Roll:%.2f",Roll);
+	// OLED_Printf(0,48,OLED_8X16,"%.2f",pid_pitch.output);
+	// OLED_Printf(64,48,OLED_8X16,"%.2f",pid_roll.output);
 	// OLED_Printf(0,16,OLED_8X16,"Yaw: %.2f",Yaw);
 	// OLED_Printf(0,32,OLED_8X16,"QMC: %.2f",Angle_XY);
+	// OLED_Printf(0,48,OLED_8X16,"FUS:%.2f",yaw_fused);
+	// OLED_Printf(0,16,OLED_8X16,"Yaw: %.2f",Yaw);
 	// OLED_Printf(0,48,OLED_8X16,"BMP: %.2f",alt);
-	OLED_Update();
-
+	// OLED_Update();
 /*
 电机调试:
-MOS1-上，白-5V
-MOS2-下，白-0V
-MOS3-下，白-5V
-MOS4-上，白-0V
+MOS1-白-5V
+MOS2-白-0V
+MOS3-白-5V
+MOS4-白-0V
 */
-	Motor_Test();
+	// Motor_Test();
 	//printf("speed_temp:%d\r\n",speed_temp);
 
 /*
 ADC电流环：
-	ADC0-MOS
-	ADC1-MOS
-	ADC2-MOS
-	ADC3-MOS4
 */
 
 	// ADC_Get();

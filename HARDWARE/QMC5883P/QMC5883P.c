@@ -47,7 +47,7 @@ uint8_t QMC_ReadReg(uint8_t RegAddress)
 
 uint8_t QMC_GetID(void)
 {
-	return QMC_ReadReg(QMC5883P_REG_CHIPID);       //MPU6050_ReadReg(0x0D);		//返回WHO_AM_I寄存器的值
+	return QMC_ReadReg(QMC5883P_REG_CHIPID);       //返回WHO_AM_I寄存器的值
 }
 
 void QMC_Init(void)

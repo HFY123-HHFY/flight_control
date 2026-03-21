@@ -1,8 +1,10 @@
 #include "Control.h"
 
 // 1开，0关
-int pid_flag = 0;
+int pid_flag = 0; // pid 控制标志，1启用，0禁用
 int pid_enabled = 1; //PID计算标志，1启用，0禁用
+
+uint8_t pid_task_flag = 0; // pid中断标志，1表示定时器中断触发，0表示未触发
 
 /*
     目标层
@@ -30,7 +32,7 @@ void PID_Init(PID_TypeDef* pid, float kp, float ki, float kd)
     pid->error_sum = 0;
 
     pid->Integral_max = 1000; // 积分最大值
-    pid->Out_max = 4200; // 输出最大值
+    pid->Out_max = 200; // 输出最大值
 }
 
 // 全局PID变量，4个姿态角
@@ -64,9 +66,6 @@ float PID_Calc(PID_TypeDef* pid, float Actual)
     
     //计算输出
     float raw_output = pid->kp * pid->error0 + pid->ki * pid->error_sum + pid->kd * (pid->error0 - pid->error1);
-
-    // 输出限幅
-    raw_output = (raw_output > pid->Out_max) ? pid->Out_max : ((raw_output < -pid->Out_max) ? -pid->Out_max : raw_output);
 
     // 卡尔曼滤波
     static float kalman_output = 0; // 卡尔曼滤波后的输出
@@ -177,4 +176,31 @@ void Set_Target_Attitude(float target_pitch, float target_roll, float target_yaw
     Target_Roll = target_roll;
     Target_Yaw = target_yaw;
     Target_Alt = target_alt;
+}
+
+/*
+    Pitch 和 Roll 合并双环控制函数
+    入口参数：
+    actual_pitch: Pitch实际角度
+    actual_roll:  Roll实际角度
+*/
+void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
+{
+    if (pid_task_flag == 1)
+    {
+        pid_task_flag = 0; // 清除PID中断标志
+
+        // 设置目标值为0
+        pid_pitch.Target = 0.0f;
+        pid_roll.Target = 0.0f;
+        
+        // 计算 PID 输出
+        float pitch_out = Limit_Output(PID_Calc(&pid_pitch, actual_pitch), Motor_out_max);
+        float roll_out  = Limit_Output(PID_Calc(&pid_roll, actual_roll), Motor_out_max);
+        
+        pid_pitch.output = pitch_out; // 更新 PID 输出到结构体
+        pid_roll.output = roll_out; // 更新 PID 输出到结构体
+
+        Motor_Test(); //加载输出到电机上
+    }
 }

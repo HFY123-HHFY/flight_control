@@ -23,13 +23,13 @@ void Motor_Control(int mosX, float duty)
     switch(mosX)
     {
         case 1:
-            MOS1_Control(pwm);
+            MOS2_Control(pwm); 
             break;
         case 2:
-            MOS2_Control(pwm);
+            MOS3_Control(pwm + 2); // 5
             break;
         case 3:
-            MOS3_Control(pwm);
+            MOS1_Control(pwm);
             break;
         case 4:
             MOS4_Control(pwm);
@@ -43,10 +43,16 @@ void Motor_Test(void)
 {
     if (Key == 1)
     {
-        Motor_Control(1, speed_temp);
-        Motor_Control(2, speed_temp);
-        Motor_Control(3, speed_temp);
-        Motor_Control(4, speed_temp);
+        /* 
+            电机1: 基础 + Pitch调节 + Roll调节
+            电机2: 基础 - Pitch调节 + Roll调节
+            电机3: 基础 + Pitch调节 - Roll调节
+            电机4: 基础 - Pitch调节 - Roll调节
+        */
+        Motor_Control(1, speed_temp + pid_pitch.output + pid_roll.output);
+        Motor_Control(2, speed_temp - pid_pitch.output + pid_roll.output);
+        Motor_Control(3, speed_temp + pid_pitch.output - pid_roll.output);
+        Motor_Control(4, speed_temp - pid_pitch.output - pid_roll.output);
     }
     else if (Key == 2)
     {

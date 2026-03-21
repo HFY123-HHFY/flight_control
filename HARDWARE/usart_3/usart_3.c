@@ -5,6 +5,7 @@
 */
 
 uint32_t USART_3_RX = 0;
+uint8_t uart3_flag = 0; // 串口3接收标志位
 
 //串口3初始化
 void usart_3_Init(u32 bound_3)
@@ -49,6 +50,7 @@ void USART3_IRQHandler(void)
 	if(USART_GetITStatus(USART3, USART_IT_RXNE) == SET) 
 	{
 		USART_3_RX = USART_ReceiveData(USART3); // 读取接收到的数据
+		uart3_flag = 1; // 设置串口3接收标志位
 	}
 	USART_ClearITPendingBit(USART3, USART_IT_RXNE);
 }
