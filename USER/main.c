@@ -1,5 +1,8 @@
 #include "Bsp.h"
 
+	float P_kp = 0, P_ki = 0, P_kd = 0;
+	float R_kp = 0, R_ki = 0, R_kd = 0;
+
 /*
 407_飞控
 */
@@ -7,7 +10,7 @@
 int main(void)                                                                      
 {
 	Bsp_Init();
-	
+
 	while(1)
 	{
 	// printf("Timer_Bsp_t:%d\r\n",Timer_Bsp_t);
@@ -18,8 +21,8 @@ MPU6050:
 	mpu_angle(); // 读取MPU6050角度数据
 	PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
 	
-	Set_PID(&pid_pitch, 5.0f, 0.00f, 1.0f); // 设置pitch环的PID参数
-	Set_PID(&pid_roll, 5.0f, 0.00f, 1.0f); // 设置roll环的PID参数
+	// Set_PID(&pid_pitch, 5.0f, 0.00f, 1.0f); // 设置pitch环的PID参数
+	// Set_PID(&pid_roll, 5.0f, 0.00f, 1.0f); // 设置roll环的PID参数
 		
 /*
 QMC5883L:
@@ -42,19 +45,47 @@ NRF24L01:
 OLED:
 */
 	// OLED_Clear();
-	// OLED_Printf(0,0,OLED_8X16,"USART_3_RX:%d",USART_3_RX);
+	// OLED_Printf(0,0,OLED_8X16,"%d",Timer_Bsp_t);
+	// OLED_Printf(64,0,OLED_8X16,"RX:%d",USART_3_RX);
+
 	// OLED_Update();
 
-	// if (uart3_flag == 1)
-	// {
-	// 	uart3_flag = 0;
+/*
+无线串口调试:
+*/	
+	if (uart3_flag == 1)
+	{
+		uart3_flag = 0;
 
-	// 	float new_kp, new_ki, new_kd;
-	// 	// 更新Pitch环
-    //     Set_PID(&pid_pitch, new_kp, new_ki, new_kd); 
-    //     // 更新Roll环
-    //     Set_PID(&pid_roll, new_kp, new_ki, new_kd);  
-	// }
+		switch (USART_3_RX)
+		{
+		case 1:
+			P_kp += 10.0f; // 增加KP
+			break;
+		
+		case 2:
+			P_kp -= 10.0f; // 减少KP
+			break;
+
+		case 3:
+			R_kp += 10.0f; // 增加KP
+			break;
+		
+		case 4:
+			R_kp -= 10.0f; // 减少KP
+			break;
+
+		default:
+			break;
+		}
+		// 更新Pitch环
+        Set_PID(&pid_pitch, P_kp, 0, 0); 
+        // 更新Roll环
+        Set_PID(&pid_roll, R_kp, 0, 0);  
+	}
+
+//	usart_printf(USART3, "T:%d, Pitch_KP: %.1f, Roll_KP: %.1f\r\n", Timer_Bsp_t, P_kp, R_kp); // 打印当前PID参数
+
 /*
 电机调试:
 MOS1-白-5V
@@ -75,14 +106,13 @@ ADC电流环：
 	// Get_Adc(ADC_Channel_2); // 获取通道2的ADC值
 	// Get_Adc(ADC_Channel_3); // 获取通道3的ADC值
 
-	OLED_Clear();
+	// OLED_Clear();
 
-	OLED_Printf(0,0,OLED_8X16,"Timer_Bsp_t:%d",Timer_Bsp_t);
-
+	// OLED_Printf(0,0,OLED_8X16,"Timer_Bsp_t:%d",Timer_Bsp_t);
 	// OLED_Printf(84,0,OLED_8X16,"%.1f",Voltage[0]); // ADC滤波平均值
 	// OLED_Printf(84,16,OLED_8X16,"%.1f",Voltage[1]);
 	// OLED_Printf(84,32,OLED_8X16,"%.1f",Voltage[2]);
 	// OLED_Printf(84,48,OLED_8X16,"%.1f",Voltage[3]);	
-	OLED_Update();
+	// OLED_Update();
 	}
 }

@@ -200,7 +200,9 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         
         pid_pitch.output = pitch_out; // 更新 PID 输出到结构体
         pid_roll.output = roll_out; // 更新 PID 输出到结构体
-
+				
+		usart_printf(USART3,"%.2f,%.2f,%.2f,%2.f\n",pid_pitch.output,pid_roll.output,Pitch,Roll);
+				
         Motor_Test(); //加载输出到电机上
     }
 }
