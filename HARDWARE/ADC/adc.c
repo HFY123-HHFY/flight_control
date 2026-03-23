@@ -67,20 +67,20 @@ u16 Get_Adc_Average(u8 ch,u8 times)
 	for(t=0;t<times;t++)
 	{
 		temp_val += Get_Adc(ch);
-		//delay_ms(5);
+		delay_ms(5);
 	}
 	return temp_val/times;
 }
 
 void ADC_Get(void)
 {
-	ADValue[0] = Get_Adc_Average(ADC_Channel_0, 20);
-	ADValue[1] = Get_Adc_Average(ADC_Channel_1, 20);
-	ADValue[2] = Get_Adc_Average(ADC_Channel_2, 20);
-	ADValue[3] = Get_Adc_Average(ADC_Channel_3, 20);
+	ADValue[0] = Get_Adc_Average(ADC_Channel_0, 1);
+	ADValue[1] = Get_Adc_Average(ADC_Channel_1, 1);
+	ADValue[2] = Get_Adc_Average(ADC_Channel_2, 1);
+	ADValue[3] = Get_Adc_Average(ADC_Channel_3, 1);
 
-	Voltage[0] = (float)ADValue[0]*(3.3/4096);          //获取计算后的带小数的实际电压值，比如3.1111
-	Voltage[1] = (float)ADValue[1]*(3.3/4096);          //获取计算后的带小数的实际电压值，比如3.1111
-	Voltage[2] = (float)ADValue[2]*(3.3/4096);          //获取计算后的带小数的实际电压值，比如3.1111
-	Voltage[3] = (float)ADValue[3]*(3.3/4096);          //获取计算后的带小数的实际电压值，比如3.1111
+	// Voltage[0] = (float)ADValue[0]*(3.3/4096);          //获取计算后的带小数的实际电压值，比如3.1111
+	// Voltage[1] = (float)ADValue[1]*(3.3/4096);          //获取计算后的带小数的实际电压值，比如3.1111
+	// Voltage[2] = (float)ADValue[2]*(3.3/4096);          //获取计算后的带小数的实际电压值，比如3.1111
+	// Voltage[3] = (float)ADValue[3]*(3.3/4096);          //获取计算后的带小数的实际电压值，比如3.1111
 }

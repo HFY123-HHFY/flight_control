@@ -22,7 +22,6 @@ void Bsp_Init(void)
 
   NRF24L01_Init(); // 初始化NRF24L01
 	
-
 	// QMC_Init();
 	// QMC_EXTI_Init();
 	
