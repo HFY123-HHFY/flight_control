@@ -162,7 +162,6 @@ float ControlTask_GetFusionDtS(void)
 // 定时器2中断服务函数
 void TIM2_IRQHandler(void)
 {
-
   if (TIM_GetITStatus(TIM2, TIM_IT_Update) == SET)
   {
     if (g_fusion_dt_ms < 1000)

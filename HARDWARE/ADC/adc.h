@@ -12,5 +12,7 @@ void ADC_Get(void);
 
 extern uint16_t ADValue[];			//定义AD值变量
 extern float Voltage[];				//定义电压变量
+extern uint32_t ADC_TimeoutCount;	//ADC等待超时计数
+extern uint32_t ADC_ResErrorCount;	//ADC分辨率异常计数
 
 #endif 

@@ -161,22 +161,9 @@ void PID_right_out(void)
     }
 }
 
-// 设置PID参数
-void Set_PID(PID_TypeDef* pid, float kp, float ki, float kd)
-{
-    pid->kp = kp;
-    pid->ki = ki;
-    pid->kd = kd;
-}
-
-// 设置目标姿态
-void Set_Target_Attitude(float target_pitch, float target_roll, float target_yaw, float target_alt)
-{
-    Target_Pitch = target_pitch;
-    Target_Roll = target_roll;
-    Target_Yaw = target_yaw;
-    Target_Alt = target_alt;
-}
+float roll_kp_pos = 0.0f, roll_ki_pos = 0.0f, roll_kd_pos = 0.0f; // Roll误差为正时PID参数
+float roll_kp_neg = 0.0f, roll_ki_neg = 0.0f, roll_kd_neg = 0.0f; // Roll误差为负时PID参数
+static int8_t roll_pid_side = 1; // 1:正侧PID, -1:负侧PID
 
 /*
     Pitch 和 Roll 合并双环控制函数
@@ -186,6 +173,12 @@ void Set_Target_Attitude(float target_pitch, float target_roll, float target_yaw
 */
 void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
 {
+    // float pitch_out = 0.0f;
+    float roll_out = 0.0f;
+    
+    // Roll误差的死区
+    const float roll_hysteresis = 0.5f; 
+
     if (pid_task_flag == 1)
     {
         pid_task_flag = 0; // 清除PID中断标志
@@ -193,16 +186,54 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         // 设置目标值为0
         pid_pitch.Target = 0.0f;
         pid_roll.Target = 0.0f;
+
+        float roll_error = pid_roll.Target - actual_roll;
+
+        if (roll_error > roll_hysteresis)
+        {
+            roll_pid_side = 1;
+        }
+        else if (roll_error < -roll_hysteresis)
+        {
+            roll_pid_side = -1;
+        }
+
+        if (roll_pid_side > 0) // ROLL误差在正侧，使用正侧PID参数
+        {
+            Set_PID(&pid_roll, roll_kp_pos, roll_ki_pos, roll_kd_pos);
+        }
+        else // ROLL误差在负侧，使用负侧PID参数
+        {
+            Set_PID(&pid_roll, roll_kp_neg, roll_ki_neg, roll_kd_neg);
+        }
         
         // 计算 PID 输出
-        float pitch_out = Limit_Output(PID_Calc(&pid_pitch, actual_pitch), Motor_out_max);
-        float roll_out  = Limit_Output(PID_Calc(&pid_roll, actual_roll), Motor_out_max);
+        // pitch_out = Limit_Output(PID_Calc(&pid_pitch, actual_pitch), Motor_out_max);
+        roll_out  = Limit_Output(PID_Calc(&pid_roll, actual_roll), Motor_out_max);
         
-        pid_pitch.output = pitch_out; // 更新 PID 输出到结构体
+        // pid_pitch.output = pitch_out; // 更新 PID 输出到结构体
         pid_roll.output = roll_out; // 更新 PID 输出到结构体
-				
-		usart_printf(USART3,"%.2f,%.2f,%.2f,%2.f\n",pid_pitch.output,pid_roll.output,Pitch,Roll);
 				
         Motor_Test(); //加载输出到电机上
     }
+}
+
+// 设置PID参数
+void Set_PID(PID_TypeDef* pid, float kp, float ki, float kd)
+{
+    pid->kp = kp;
+    pid->ki = ki;
+    pid->kd = kd;
+}
+
+// 设置Roll正负两套PID参数
+void Set_Roll_BiPID(float kp_pos, float ki_pos, float kd_pos, float kp_neg, float ki_neg, float kd_neg)
+{
+    roll_kp_pos = kp_pos;
+    roll_ki_pos = ki_pos;
+    roll_kd_pos = kd_pos;
+
+    roll_kp_neg = kp_neg;
+    roll_ki_neg = ki_neg;
+    roll_kd_neg = kd_neg;
 }

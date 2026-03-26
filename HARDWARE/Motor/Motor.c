@@ -49,8 +49,8 @@ void Motor_Test(void)
             电机3: 基础 + Pitch调节 - Roll调节
             电机4: 基础 - Pitch调节 - Roll调节
         */
-        Motor_Control(1, speed_temp + pid_pitch.output + pid_roll.output);
-        Motor_Control(2, speed_temp - pid_pitch.output + pid_roll.output);
+        Motor_Control(1, 16 + speed_temp + pid_pitch.output + pid_roll.output);
+        Motor_Control(2, 16 + speed_temp - pid_pitch.output + pid_roll.output);
         Motor_Control(3, speed_temp + pid_pitch.output - pid_roll.output);
         Motor_Control(4, speed_temp - pid_pitch.output - pid_roll.output);
     }

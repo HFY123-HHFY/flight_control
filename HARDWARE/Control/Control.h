@@ -29,12 +29,14 @@ typedef struct
 
 void PID_Contorl_Init(void); // PID控制初始化
 void Set_PID(PID_TypeDef* pid, float kp, float ki, float kd); // 设置PID参数
-void Set_Target_Attitude(float target_pitch, float target_roll, float target_yaw, float target_alt); // 设置目标姿态
+void Set_Roll_BiPID(float kp_pos, float ki_pos, float kd_pos, float kp_neg, float ki_neg, float kd_neg); // 设置Roll正负两套PID参数
 
 void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll); // Pitch 和 Roll 合并双环控制函数
 
 extern PID_TypeDef pid_pitch, pid_roll, pid_yaw, pid_alt; // 全局PID变量，4个姿态角
 extern int pid_flag; // PID控制标志位
 extern uint8_t pid_task_flag; // PID中断标志
+extern float roll_kp_pos, roll_ki_pos, roll_kd_pos; // Roll误差为正时PID
+extern float roll_kp_neg, roll_ki_neg, roll_kd_neg; // Roll误差为负时PID
 
 #endif
