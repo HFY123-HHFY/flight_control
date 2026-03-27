@@ -7,6 +7,7 @@
 int main(void)                                                                      
 {
 	Bsp_Init();
+
 	float R_kp = 0, R_ki = 0, R_kd = 0; // Roll正侧PID参数
 	float R_kp_n = 0, R_ki_n = 0, R_kd_n = 0; // Roll负侧PID参数
 
@@ -137,7 +138,8 @@ OLED:
 			Set_Roll_BiPID(R_kp, R_ki, R_kd, R_kp_n, R_ki_n, R_kd_n);
 		}
 		// usart_printf(USART3, "RX:%c\r\n", USART_3_RX);
-		usart_printf(USART3,"T:%d, R:%.1f, P+(%.1f,%.2f,%.1f), P-(%.1f,%.2f,%.1f), out:%.1f\r\n",Timer_Bsp_t, Roll, R_kp, R_ki, R_kd, R_kp_n, R_ki_n, R_kd_n, pid_roll.output);
+		// usart_printf(USART3,"T:%d, R:%.1f, P+(%.1f,%.2f,%.1f), P-(%.1f,%.2f,%.1f), out:%.1f\r\n",Timer_Bsp_t, Roll, R_kp, R_ki, R_kd, R_kp_n, R_ki_n, R_kd_n, pid_roll.output);
+
 /*
 电机调试:
 MOS1-白-5V

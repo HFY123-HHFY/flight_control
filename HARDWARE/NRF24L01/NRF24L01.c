@@ -715,7 +715,7 @@ void NRF24L01_Data(void)
 	{
 		uint8_t ID = NRF24L01_RxPacket[0];
 
-		if (ID == 0x00)
+		if (ID == 0x00) // 不回传数据
 		{
 			//得到遥控器的键值
 			Key = NRF24L01_RxPacket[1];

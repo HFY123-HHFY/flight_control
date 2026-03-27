@@ -22,7 +22,7 @@ void Bsp_Init(void)
 
   NRF24L01_Init(); // 初始化NRF24L01
 	
-	// QMC_Init();
+	QMC_Init();
 	// QMC_EXTI_Init();
 	
   // ControlTask_FusionInit(); // 卡尔曼滤波器初始化
