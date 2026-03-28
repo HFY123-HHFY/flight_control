@@ -707,6 +707,8 @@ void NRF24L01_UpdateRxAddress(void)
 uint8_t SendFlag = 0;								//发送标志位
 uint8_t ReceiveFlag = 0;							//接收标志位
 
+//  float Pitch Roll Yaw QMC BMP  
+
 //数据包发送接收刷新:
 void NRF24L01_Data(void)
 {	
@@ -715,8 +717,20 @@ void NRF24L01_Data(void)
 	{
 		uint8_t ID = NRF24L01_RxPacket[0];
 
-		if (ID == 0x00) // 不回传数据
+		if (ID == 0x00 || ID == 0x01)
 		{
+			if (ID == 0x01)
+			{
+				NRF24L01_TxPacket[0] = 0x02; // 回传数据包ID
+				// 这里空出了4个字节，预留
+				*(float *)&NRF24L01_TxPacket[4] = Pitch; // 占用4，5，6，7
+				*(float *)&NRF24L01_TxPacket[8] = Roll; // 占用8，9，10，11
+				*(float *)&NRF24L01_TxPacket[12] = Yaw; // 占用12，13，14，15
+				*(float *)&NRF24L01_TxPacket[16] = Angle_XY; // 占用16，17，18，19
+				*(float *)&NRF24L01_TxPacket[20] = alt; // 占用20，21，22，23
+				SendFlag = NRF24L01_Send(); // 发送数据包，并获取发送状态
+			}
+			
 			//得到遥控器的键值
 			Key = NRF24L01_RxPacket[1];
 
@@ -726,7 +740,7 @@ void NRF24L01_Data(void)
 			// int8_t R_Z = NRF24L01_RxPacket[4];
 			// int8_t L_H = NRF24L01_RxPacket[5];
 
-			if (Key == 1)
+			if (Key == 1) //解锁基础油门
 			{
 				speed_temp = rx_duty; //把油门给到PWM占空比
 			}

@@ -4,9 +4,9 @@
 MPU6050外部中断,函数变量定义
 */
 float Pitch, Roll, Yaw;	        // Pitch：俯仰角，Roll：横滚角，Yaw：偏航角
-short gyrox, gyroy, gyroz;        // 角速度,x轴、y轴、z轴角速度
-short aacx, aacy, aacz;           // 加速度 ,x轴、y轴、z轴加速度
-//short短整型
+short gyrox, gyroy, gyroz;        // 角速度,x轴、y轴、z轴
+short aacx, aacy, aacz;           // 加速度 ,x轴、y轴、z轴
+//short短整型，16位有符号整数，范围-32768~32767，单位：m/s^2, %hd
 
 uint8_t volatile mpu_flag = 0; // MPU6050数据更新标志
 
@@ -64,5 +64,7 @@ void mpu_angle(void)
 	{
 		mpu_flag = 0; // 清除MPU6050数据更新标志
 		mpu_dmp_get_data(&Pitch,&Roll,&Yaw);	    // 读取角度
+		// MPU_Get_Gyroscope(&gyrox,&gyroy,&gyroz);  // 读取角速度
+     	// MPU_Get_Accelerometer(&aacx,&aacy,&aacz); // 读取加速度
 	}	
 }

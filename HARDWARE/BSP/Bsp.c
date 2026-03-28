@@ -27,7 +27,7 @@ void Bsp_Init(void)
 	
   // ControlTask_FusionInit(); // 卡尔曼滤波器初始化
 
-  // BMP280Init();
+  BMP280Init();
 
   MPU_Init(); // 初始化MPU6050
   mpu_dmp_init(); // 初始化MPU6050 DMP
