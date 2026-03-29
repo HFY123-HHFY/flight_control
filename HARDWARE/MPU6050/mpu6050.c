@@ -88,6 +88,15 @@ short MPU_Get_Temperature(void)
     temp=36.53+((double)raw)/340;  
     return temp*100;;
 }
+
+// 坐标系修正: 与DMP的gyro_orientation保持一致（背面安装，绕X轴翻转180度）
+// X轴不变，Y轴/Z轴取反。
+static void MPU_Apply_Mount_Transform(short *x, short *y, short *z)
+{
+	*y = (short)(-*y);
+	*z = (short)(-*z);
+}
+
 //得到陀螺仪值(原始值)
 //gx,gy,gz:陀螺仪x,y,z轴的原始读数(带符号)
 //返回值:0,成功
@@ -101,11 +110,12 @@ u8 MPU_Get_Gyroscope(short *gx,short *gy,short *gz)
 		*gx=((u16)buf[0]<<8)|buf[1];  
 		*gy=((u16)buf[2]<<8)|buf[3];  
 		*gz=((u16)buf[4]<<8)|buf[5];
+		MPU_Apply_Mount_Transform(gx, gy, gz);
 	} 	
     return res;;
 }
 //得到加速度值(原始值)
-//gx,gy,gz:陀螺仪x,y,z轴的原始读数(带符号)
+//ax,ay,az:加速度x,y,z轴的原始读数(带符号)
 //返回值:0,成功
 //    其他,错误代码
 u8 MPU_Get_Accelerometer(short *ax,short *ay,short *az)
@@ -117,6 +127,7 @@ u8 MPU_Get_Accelerometer(short *ax,short *ay,short *az)
 		*ax=((u16)buf[0]<<8)|buf[1];  
 		*ay=((u16)buf[2]<<8)|buf[3];  
 		*az=((u16)buf[4]<<8)|buf[5];
+		MPU_Apply_Mount_Transform(ax, ay, az);
 	} 	
     return res;;
 }

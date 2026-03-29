@@ -4,9 +4,12 @@
 #include "math.h"
 #include "Motor.h"
 #include "NVIC_Int.h"
+#include "QMC5883P.h"
 #include "bmp280.h"
 
 #define Motor_out_max 200	//PID输出最后加载到电机上的输出限幅
+#define GYRO_SENS_2000DPS 16.4f // ±2000dps量程下灵敏度: 16.4 LSB/(deg/s)
+#define RATE_TARGET_MAX_DPS 200.0f // 外环输出的目标角速度限幅(deg/s)
 
 // PID
 typedef struct 
@@ -29,14 +32,12 @@ typedef struct
 
 void PID_Contorl_Init(void); // PID控制初始化
 void Set_PID(PID_TypeDef* pid, float kp, float ki, float kd); // 设置PID参数
-void Set_Roll_BiPID(float kp_pos, float ki_pos, float kd_pos, float kp_neg, float ki_neg, float kd_neg); // 设置Roll正负两套PID参数
-
 void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll); // Pitch 和 Roll 合并双环控制函数
+void Set_Gyro_Bias(float bias_x, float bias_y, float bias_z); // 设置陀螺仪零偏(原始LSB)
 
-extern PID_TypeDef pid_pitch, pid_roll, pid_yaw, pid_alt; // 全局PID变量，4个姿态角
-extern int pid_flag; // PID控制标志位
+extern PID_TypeDef pid_pitch, pid_roll, pid_yaw, pid_alt; // 外环PID变量（角度/高度）
+extern PID_TypeDef pid_rate_pitch, pid_rate_roll, pid_rate_yaw; // 内环PID变量（角速度）
+extern uint8_t pid_flag; // PID控制标志位
 extern uint8_t pid_task_flag; // PID中断标志
-extern float roll_kp_pos, roll_ki_pos, roll_kd_pos; // Roll误差为正时PID
-extern float roll_kp_neg, roll_ki_neg, roll_kd_neg; // Roll误差为负时PID
 
 #endif

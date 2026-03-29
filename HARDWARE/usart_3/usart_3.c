@@ -55,17 +55,15 @@ void USART3_IRQHandler(void)
 	USART_ClearITPendingBit(USART3, USART_IT_RXNE);
 }
 
-float R_kp = 1.8, R_ki = 0.0, R_kd = 1.90; // Roll正侧PID参数
-float R_kp_n = 0.4, R_ki_n = 0.0, R_kd_n = 0.3; // Roll负侧PID参数
-
 void USART3_Data(void)
 {
+	float R_kp = 0.0f, R_ki = 0.0f, R_kd = 0.0f; // Roll PID参数
+
 	if (uart3_flag == 1)
 	{
 		uart3_flag = 0;
 		switch (USART_3_RX)
 		{
-		// ROLL < 0
 		case 'a':	R_kp += 0.1f;	break;
 		
 		case 'b':	R_kp -= 0.1f;
@@ -94,40 +92,11 @@ void USART3_Data(void)
 			}
 			break;
 
-// ROLL >= 0
-		case 'g':	R_kp_n += 0.1f;	break;
-
-		case 'h':	R_kp_n -= 0.1f;
-			if (R_kp_n < 0.0f)
-			{
-				R_kp_n = 0.0f;
-			}
-			break;
-
-		case 'i':	R_ki_n += 0.002f;	break;
-
-		case 'j':	R_ki_n -= 0.002f;
-			if (R_ki_n < 0.0f)
-			{
-				R_ki_n = 0.0f;
-			}
-			break;
-
-		case 'k':	R_kd_n += 0.1f;	break;
-			
-		case 'l':	R_kd_n -= 0.1f;
-			if (R_kd_n < 0.0f)
-			{
-				R_kd_n = 0.0f;
-			}
-			break;
 
 		default:
 			break;
 		}
 		// 更新Roll环
-		Set_Roll_BiPID(R_kp, R_ki, R_kd, R_kp_n, R_ki_n, R_kd_n);
-		usart_printf(USART3,"T:%d, R:%.1f, P+(%.1f,%.2f,%.1f), P-(%.1f,%.2f,%.1f), out:%.1f\r\n",
-		Timer_Bsp_t, Roll, R_kp, R_ki, R_kd, R_kp_n, R_ki_n, R_kd_n, pid_roll.output);
+		Set_PID(&pid_roll, R_kp, R_ki, R_kd);
 	}
 }

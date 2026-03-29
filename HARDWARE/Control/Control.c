@@ -1,8 +1,8 @@
 #include "Control.h"
 
 // 1开，0关
-int pid_flag = 0; // pid 控制标志，1启用，0禁用
-int pid_enabled = 1; //PID计算标志，1启用，0禁用
+uint8_t pid_flag = 0; // pid 控制标志，1启用，0禁用
+uint8_t pid_enabled = 1; //PID计算标志，1启用，0禁用
 
 uint8_t pid_task_flag = 0; // pid中断标志，1表示定时器中断触发，0表示未触发
 
@@ -14,6 +14,22 @@ float Target_Pitch = 0.0f; // 设定目标俯仰角
 float Target_Roll = 0.0f; // 设定目标横滚角
 float Target_Yaw = 0.0f; // 设定目标偏航角
 float Target_Alt = 0.0f; //设定目标高度
+
+static float gyro_bias_x = 0.0f; // 陀螺仪X轴零偏(原始LSB)
+static float gyro_bias_y = 0.0f; // 陀螺仪Y轴零偏(原始LSB)
+static float gyro_bias_z = 0.0f; // 陀螺仪Z轴零偏(原始LSB)
+
+// 将陀螺仪原始值转换为角速度（deg/s）
+static float GyroRawToDps(short raw, float bias)
+{
+    return ((float)raw - bias) / GYRO_SENS_2000DPS;
+}
+
+// 限幅函数
+float Limit_Output(float value, float max)
+{
+    return (value > max) ? max : ((value < -max) ? -max : value);
+}
 
 // PID初始化
 void PID_Init(PID_TypeDef* pid, float kp, float ki, float kd)
@@ -35,8 +51,9 @@ void PID_Init(PID_TypeDef* pid, float kp, float ki, float kd)
     pid->Out_max = 200; // 输出最大值
 }
 
-// 全局PID变量，4个姿态角
+// 全局PID变量，外环:角度/高度，内环:角速度
 PID_TypeDef pid_pitch, pid_roll, pid_yaw, pid_alt;
+PID_TypeDef pid_rate_pitch, pid_rate_roll, pid_rate_yaw;
 
 // PID参数初始化
 void PID_Contorl_Init(void)
@@ -45,11 +62,17 @@ void PID_Contorl_Init(void)
     PID_Init(&pid_roll, 0.0f, 0.00f, 0.0f);
     PID_Init(&pid_yaw, 0.0f, 0.00f, 0.0f);
     PID_Init(&pid_alt, 0.0f, 0.00f, 0.0f);
+
+    PID_Init(&pid_rate_pitch, 0.0f, 0.00f, 0.0f);
+    PID_Init(&pid_rate_roll, 0.0f, 0.00f, 0.0f);
+    PID_Init(&pid_rate_yaw, 0.0f, 0.00f, 0.0f);
 }
 
 // PID计算
 float PID_Calc(PID_TypeDef* pid, float Actual)
 {
+    float raw_output; // PID计算的原始输出，未限幅
+
     pid->Actual = Actual;
     pid->error1 = pid->error0;
     pid->error0 = pid->Target - pid->Actual;
@@ -63,40 +86,12 @@ float PID_Calc(PID_TypeDef* pid, float Actual)
     {
         pid->error_sum = 0;
     }
-    
-    //计算输出
-    float raw_output = pid->kp * pid->error0 + pid->ki * pid->error_sum + pid->kd * (pid->error0 - pid->error1);
 
-    // 卡尔曼滤波
-    static float kalman_output = 0; // 卡尔曼滤波后的输出
-    static float P = 1.0f;          // 估计误差协方差
-    const float Q = 0.1f;          // 过程噪声协方差，越大响应越快，但是滤波效果会变差
-    const float R = 0.01f;           // 测量噪声协方差，和Q反之
-    float K;                        // 卡尔曼增益，权重
-
-    // 预测更新
-    P = P + Q;
-
-    // 计算卡尔曼增益
-    K = P / (P + R);
-
-    // 更新估计值
-    kalman_output = kalman_output + K * (raw_output - kalman_output);
-
-    // 更新误差协方差
-    P = (1 - K) * P;
-
-    // 低通滤波
-    const float alpha = 0.8f; // 滤波系数，0.0~1.0，越接近1越平滑
-    pid->output = alpha * pid->output + (1.0f - alpha) * kalman_output;
+    // 计算输出
+    raw_output = pid->kp * pid->error0 + pid->ki * pid->error_sum + pid->kd * (pid->error0 - pid->error1);
+    pid->output = Limit_Output(raw_output, pid->Out_max);
 
     return pid->output;
-}
-
-// 限幅函数
-float Limit_Output(float value, float max)
-{
-    return (value > max) ? max : ((value < -max) ? -max : value);
 }
 
 /*
@@ -105,6 +100,19 @@ float Limit_Output(float value, float max)
 */
 void PID_OUT(float Pitch, float Roll, float Yaw, float alt) 
 {
+    float pitch_rate_target = 0.0f; // Pitch外环输出的目标角速度
+    float roll_rate_target = 0.0f; // Roll外环输出的目标角速度
+    float yaw_rate_target = 0.0f; // Yaw外环输出的目标角速度
+
+    float gyro_pitch_dps = 0.0f; // 陀螺仪测量的Pitch轴角速度(deg/s)
+    float gyro_roll_dps = 0.0f; // 陀螺仪测量的Roll轴角速度(deg/s)
+    float gyro_yaw_dps = 0.0f; // 陀螺仪测量的Yaw轴角速度(deg/s)
+
+    float pid_pitch_rate_output = 0.0f; // Pitch内环PID输出
+    float pid_roll_rate_output = 0.0f; // Roll内环PID输出
+    float pid_yaw_rate_output = 0.0f; // Yaw内环PID输出
+    float pid_alt_output = 0.0f; // Altitude内环PID输出
+
     if (!pid_enabled)
     {
         return;
@@ -120,16 +128,31 @@ void PID_OUT(float Pitch, float Roll, float Yaw, float alt)
     /*
         传入实际值，计算得到输出值
     */
-    // 计算 PID 输出
-    float pid_pitch_output = Limit_Output(PID_Calc(&pid_pitch, Pitch), Motor_out_max);
-    float pid_roll_output = Limit_Output(PID_Calc(&pid_roll, Roll), Motor_out_max);
-    float pid_yaw_output = Limit_Output(PID_Calc(&pid_yaw, Yaw), Motor_out_max);
-    float pid_alt_output = Limit_Output(PID_Calc(&pid_alt, alt), Motor_out_max);//........
+    // 外环(角度)输出目标角速度
+    pitch_rate_target = Limit_Output(PID_Calc(&pid_pitch, Pitch), RATE_TARGET_MAX_DPS);
+    roll_rate_target = Limit_Output(PID_Calc(&pid_roll, Roll), RATE_TARGET_MAX_DPS);
+    yaw_rate_target = Limit_Output(PID_Calc(&pid_yaw, Yaw), RATE_TARGET_MAX_DPS);
+
+    // 内环(角速度)实际值: 由陀螺仪原始值换算为 deg/s
+    gyro_pitch_dps = GyroRawToDps(gyrox, gyro_bias_x);
+    gyro_roll_dps = GyroRawToDps(gyroy, gyro_bias_y);
+    gyro_yaw_dps = GyroRawToDps(gyroz, gyro_bias_z);
+
+    // 内环(角速度)目标值: 外环输出的目标角速度
+    pid_rate_pitch.Target = pitch_rate_target;
+    pid_rate_roll.Target = roll_rate_target;
+    pid_rate_yaw.Target = yaw_rate_target;
+
+    // 内环输出用于电机混控
+    pid_pitch_rate_output = Limit_Output(PID_Calc(&pid_rate_pitch, gyro_pitch_dps), Motor_out_max);
+    pid_roll_rate_output = Limit_Output(PID_Calc(&pid_rate_roll, gyro_roll_dps), Motor_out_max);
+    pid_yaw_rate_output = Limit_Output(PID_Calc(&pid_rate_yaw, gyro_yaw_dps), Motor_out_max);
+    pid_alt_output = Limit_Output(PID_Calc(&pid_alt, alt), Motor_out_max);
 
     // 更新 PID 输出
-    pid_pitch.output = pid_pitch_output;
-    pid_roll.output = pid_roll_output;
-    pid_yaw.output = pid_yaw_output;
+    pid_pitch.output = pid_pitch_rate_output;
+    pid_roll.output = pid_roll_rate_output;
+    pid_yaw.output = pid_yaw_rate_output;
     pid_alt.output = pid_alt_output;
 }
 
@@ -141,7 +164,7 @@ void PID_right_out(void)
     if (pid_flag == 1)
     {
         pid_enabled = 1; //启用PID计算
-        PID_OUT(Pitch, Roll, Yaw, alt);//................
+        PID_OUT(Pitch, Roll, Yaw, alt);
         Motor_Control(1, pid_alt.output + pid_pitch.output - pid_roll.output + pid_yaw.output);
         Motor_Control(2, pid_alt.output + pid_pitch.output + pid_roll.output - pid_yaw.output);
         Motor_Control(3, pid_alt.output - pid_pitch.output + pid_roll.output + pid_yaw.output);
@@ -154,16 +177,15 @@ void PID_right_out(void)
         pid_pitch.output = 0;
         pid_roll.output = 0;
         pid_yaw.output = 0;
+        pid_rate_pitch.output = 0;
+        pid_rate_roll.output = 0;
+        pid_rate_yaw.output = 0;
         Motor_Control(1, 0);
         Motor_Control(2, 0);
         Motor_Control(3, 0);
         Motor_Control(4, 0);
     }
 }
-
-float roll_kp_pos = 0.0f, roll_ki_pos = 0.0f, roll_kd_pos = 0.0f; // Roll误差为正时PID参数
-float roll_kp_neg = 0.0f, roll_ki_neg = 0.0f, roll_kd_neg = 0.0f; // Roll误差为负时PID参数
-static int8_t roll_pid_side = 1; // 1:正侧PID, -1:负侧PID
 
 /*
     Pitch 和 Roll 合并双环控制函数
@@ -173,11 +195,12 @@ static int8_t roll_pid_side = 1; // 1:正侧PID, -1:负侧PID
 */
 void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
 {
-    // float pitch_out = 0.0f;
-    float roll_out = 0.0f;
-    
-    // Roll误差的死区
-    const float roll_hysteresis = 0.5f; 
+    float pitch_out = 0.0f; // Pitch内环PID输出
+    float roll_out = 0.0f; // Roll内环PID输出
+    float pitch_rate_target = 0.0f; // Pitch外环输出的目标角速度
+    float roll_rate_target = 0.0f; // Roll外环输出的目标角速度
+    float gyro_pitch_dps = 0.0f; // 陀螺仪测量的Pitch轴角速度(deg/s)
+    float gyro_roll_dps = 0.0f; // 陀螺仪测量的Roll轴角速度(deg/s)
 
     if (pid_task_flag == 1)
     {
@@ -186,32 +209,21 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         // 设置目标值为0
         pid_pitch.Target = 0.0f;
         pid_roll.Target = 0.0f;
-
-        float roll_error = pid_roll.Target - actual_roll;
-
-        if (roll_error > roll_hysteresis)
-        {
-            roll_pid_side = 1;
-        }
-        else if (roll_error < -roll_hysteresis)
-        {
-            roll_pid_side = -1;
-        }
-
-        if (roll_pid_side > 0) // ROLL误差在正侧，使用正侧PID参数
-        {
-            Set_PID(&pid_roll, roll_kp_pos, roll_ki_pos, roll_kd_pos);
-        }
-        else // ROLL误差在负侧，使用负侧PID参数
-        {
-            Set_PID(&pid_roll, roll_kp_neg, roll_ki_neg, roll_kd_neg);
-        }
         
-        // 计算 PID 输出
-        // pitch_out = Limit_Output(PID_Calc(&pid_pitch, actual_pitch), Motor_out_max);
-        roll_out  = Limit_Output(PID_Calc(&pid_roll, actual_roll), Motor_out_max);
+        // 双环: 外环角度 -> 内环角速度
+        pitch_rate_target = Limit_Output(PID_Calc(&pid_pitch, actual_pitch), RATE_TARGET_MAX_DPS);
+        roll_rate_target = Limit_Output(PID_Calc(&pid_roll, actual_roll), RATE_TARGET_MAX_DPS);
+
+        gyro_pitch_dps = GyroRawToDps(gyrox, gyro_bias_x);
+        gyro_roll_dps = GyroRawToDps(gyroy, gyro_bias_y);
+
+        pid_rate_pitch.Target = pitch_rate_target;
+        pid_rate_roll.Target = roll_rate_target;
+
+        pitch_out = Limit_Output(PID_Calc(&pid_rate_pitch, gyro_pitch_dps), Motor_out_max);
+        roll_out  = Limit_Output(PID_Calc(&pid_rate_roll, gyro_roll_dps), Motor_out_max);
         
-        // pid_pitch.output = pitch_out; // 更新 PID 输出到结构体
+        pid_pitch.output = pitch_out; // Motor_Test使用pid_pitch.output/pid_roll.output
         pid_roll.output = roll_out; // 更新 PID 输出到结构体
 				
         Motor_Test(); //加载输出到电机上
@@ -226,14 +238,10 @@ void Set_PID(PID_TypeDef* pid, float kp, float ki, float kd)
     pid->kd = kd;
 }
 
-// 设置Roll正负两套PID参数
-void Set_Roll_BiPID(float kp_pos, float ki_pos, float kd_pos, float kp_neg, float ki_neg, float kd_neg)
+// 设置陀螺仪零偏(原始LSB)
+void Set_Gyro_Bias(float bias_x, float bias_y, float bias_z)
 {
-    roll_kp_pos = kp_pos;
-    roll_ki_pos = ki_pos;
-    roll_kd_pos = kd_pos;
-
-    roll_kp_neg = kp_neg;
-    roll_ki_neg = ki_neg;
-    roll_kd_neg = kd_neg;
+    gyro_bias_x = bias_x;
+    gyro_bias_y = bias_y;
+    gyro_bias_z = bias_z;
 }

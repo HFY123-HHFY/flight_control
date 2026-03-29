@@ -707,8 +707,6 @@ void NRF24L01_UpdateRxAddress(void)
 uint8_t SendFlag = 0;								//发送标志位
 uint8_t ReceiveFlag = 0;							//接收标志位
 
-//  float Pitch Roll Yaw QMC BMP  
-
 //数据包发送接收刷新:
 void NRF24L01_Data(void)
 {	

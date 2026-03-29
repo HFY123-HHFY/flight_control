@@ -116,7 +116,7 @@ void MyI2C_Ack(void) // 发送ACK应答
 
 void MyI2C_NAck(void) // 发送NACK应答
 {
-		MyI2C_W_SCL(0);
+	MyI2C_W_SCL(0);
     MyI2C_Set_SDA_Output();
     MyI2C_W_SDA(1);
     delay_us(2);

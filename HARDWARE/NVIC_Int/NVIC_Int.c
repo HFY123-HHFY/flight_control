@@ -64,7 +64,7 @@ void mpu_angle(void)
 	{
 		mpu_flag = 0; // 清除MPU6050数据更新标志
 		mpu_dmp_get_data(&Pitch,&Roll,&Yaw);	    // 读取角度
-		// MPU_Get_Gyroscope(&gyrox,&gyroy,&gyroz);  // 读取角速度
+		MPU_Get_Gyroscope(&gyrox,&gyroy,&gyroz);  // 读取角速度
      	// MPU_Get_Accelerometer(&aacx,&aacy,&aacz); // 读取加速度
 	}	
 }
