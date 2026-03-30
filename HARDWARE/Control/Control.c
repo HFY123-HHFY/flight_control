@@ -15,9 +15,9 @@ float Target_Roll = 0.0f; // 设定目标横滚角
 float Target_Yaw = 0.0f; // 设定目标偏航角
 float Target_Alt = 0.0f; //设定目标高度
 
-static float gyro_bias_x = 0.0f; // 陀螺仪X轴零偏(原始LSB)
-static float gyro_bias_y = 0.0f; // 陀螺仪Y轴零偏(原始LSB)
-static float gyro_bias_z = 0.0f; // 陀螺仪Z轴零偏(原始LSB)
+static float gyro_bias_x = -32.1f; // 陀螺仪X轴零偏(原始LSB)
+static float gyro_bias_y = -3.1f; // 陀螺仪Y轴零偏(原始LSB)
+static float gyro_bias_z = -6.4f; // 陀螺仪Z轴零偏(原始LSB)
 
 // 将陀螺仪原始值转换为角速度（deg/s）
 static float GyroRawToDps(short raw, float bias)
@@ -206,27 +206,37 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
     {
         pid_task_flag = 0; // 清除PID中断标志
 
-        // 设置目标值为0
+        // 设置外环目标角度
         pid_pitch.Target = 0.0f;
         pid_roll.Target = 0.0f;
         
-        // 双环: 外环角度 -> 内环角速度
+        //外环PID输出
         pitch_rate_target = Limit_Output(PID_Calc(&pid_pitch, actual_pitch), RATE_TARGET_MAX_DPS);
         roll_rate_target = Limit_Output(PID_Calc(&pid_roll, actual_roll), RATE_TARGET_MAX_DPS);
 
+        // 内环实际角速度: 由陀螺仪原始值换算为 deg/s
         gyro_pitch_dps = GyroRawToDps(gyrox, gyro_bias_x);
         gyro_roll_dps = GyroRawToDps(gyroy, gyro_bias_y);
 
+        // 内环目标角速度 = 外环PID输出
         pid_rate_pitch.Target = pitch_rate_target;
         pid_rate_roll.Target = roll_rate_target;
+        // pid_rate_pitch.Target = 0.0f;
+        // pid_rate_roll.Target = 10.0f;
 
+        // 内环PID输出
         pitch_out = Limit_Output(PID_Calc(&pid_rate_pitch, gyro_pitch_dps), Motor_out_max);
         roll_out  = Limit_Output(PID_Calc(&pid_rate_roll, gyro_roll_dps), Motor_out_max);
         
+        //串级PID最终输出
         pid_pitch.output = pitch_out; // Motor_Test使用pid_pitch.output/pid_roll.output
         pid_roll.output = roll_out; // 更新 PID 输出到结构体
 				
-        Motor_Test(); //加载输出到电机上
+         //加载输出到电机上
+        // Motor_Test();
+
+        // usart_printf(USART3,"Roll:%.1f, gyroy:%hd, gyro_roll_dps:%.1f, roll_out:%.1f\r\n",Roll,gyroy,gyro_roll_dps,roll_out);
+        usart_printf(USART3,"%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.Target,Pitch,pid_rate_pitch.Target,gyro_pitch_dps,pitch_out);
     }
 }
 
