@@ -26,7 +26,7 @@ void Motor_Control(int mosX, float duty)
             MOS2_Control(pwm); 
             break;
         case 2:
-            MOS3_Control(pwm + 2); // 5
+            MOS3_Control(pwm);
             break;
         case 3:
             MOS1_Control(pwm);

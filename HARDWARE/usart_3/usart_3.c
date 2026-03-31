@@ -57,46 +57,101 @@ void USART3_IRQHandler(void)
 
 void USART3_Data(void)
 {
-	float R_kp = 0.0f, R_ki = 0.0f, R_kd = 0.0f; // Roll PID参数
+	static float kp = 0.0f, ki = 0.0f, kd = 0.0f;// 外环PID参数
+	static float rate_kp = 0.0f, rate_ki = 0.0f, rate_kd = 0.0f; // 内环PID参数
 
 	if (uart3_flag == 1)
 	{
 		uart3_flag = 0;
 		switch (USART_3_RX)
 		{
-		case 'a':	R_kp += 0.1f;	break;
-		
-		case 'b':	R_kp -= 0.1f;
-			if (R_kp < 0.0f)
-			{
-				R_kp = 0.0f;
-			}
+	/*
+	内环PID参数调整：
+	*/
+			case 'a':	
+				rate_kp += 1.0f;	
 			break;
-
-		case 'c':	R_ki += 0.002f;	break;
 			
-		case 'd':
-			R_ki -= 0.002f;
-			if (R_ki < 0.0f)
+			case 'b':	
+			rate_kp -= 1.0f;
+			if (rate_kp < 0.0f)
 			{
-				R_ki = 0.0f;
+				rate_kp = 0.0f;
 			}
 			break;
 
-		case 'e':	R_kd += 0.1f;	break;
+			case 'c':	
+				rate_ki += 0.002f;	
+			break;
+				
+			case 'd':
+				rate_ki -= 0.002f;
+				if (rate_ki < 0.0f)
+				{
+					rate_ki = 0.0f;
+				}
+			break;
+
+			case 'e':	
+				rate_kd += 0.1f;	
+			break;
+				
+			case 'f':	
+				rate_kd -= 0.1f;
+				if (rate_kd < 0.0f)
+				{
+					rate_kd = 0.0f;
+				}
+			break;
+
+	/*
+	外环PID参数调整：
+	*/
+			case 'g':	
+				kp += 1.0f;	
+			break;
 			
-		case 'f':	R_kd -= 0.1f;
-			if (R_kd < 0.0f)
-			{
-				R_kd = 0.0f;
-			}
+			case 'h':	
+				kp -= 1.0f;
+				if (kp < 0.0f)
+				{
+					kp = 0.0f;
+				}
 			break;
 
-
-		default:
+			case 'i':	
+				ki += 0.002f;	
 			break;
+				
+			case 'j':
+				ki -= 0.002f;
+				if (ki < 0.0f)
+				{
+					ki = 0.0f;
+				}
+				break;
+
+			case 'k':	
+				kd += 0.1f;	
+			break;
+				
+			case 'l':	
+				kd -= 0.1f;
+				if (kd < 0.0f)
+				{
+					kd = 0.0f;
+				}
+			break;
+
+			default:
+				break;
 		}
-		// 更新Roll环
-		Set_PID(&pid_roll, R_kp, R_ki, R_kd);
+		// 更新PID参数
+		Set_PID(&pid_rate_roll, rate_kp, rate_ki, rate_kd); // 设置Roll内环PID参数
+		Set_PID(&pid_rate_pitch, rate_kp, rate_ki, rate_kd); // 设置Pitch内环PID参数
+
+		Set_PID(&pid_roll, kp, ki, kd); // 设置Roll外环PID参数
+		Set_PID(&pid_pitch, kp, ki, kd); // 设置Pitch外环PID参数
 	}
+	// usart_printf(USART3,"Target:%.1f,     pitch:%.1f,      rate_kp:%.1f,      kp:%.1f,     out:%.1f\n",pid_pitch.Target, Pitch, pid_rate_pitch.kp, pid_pitch.kp, pid_pitch.output);
 }

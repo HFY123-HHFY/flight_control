@@ -222,7 +222,7 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         pid_rate_pitch.Target = pitch_rate_target;
         pid_rate_roll.Target = roll_rate_target;
         // pid_rate_pitch.Target = 0.0f;
-        // pid_rate_roll.Target = 10.0f;
+        // pid_rate_roll.Target = -50.0f;
 
         // 内环PID输出
         pitch_out = Limit_Output(PID_Calc(&pid_rate_pitch, gyro_pitch_dps), Motor_out_max);
@@ -233,10 +233,10 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         pid_roll.output = roll_out; // 更新 PID 输出到结构体
 				
          //加载输出到电机上
-        // Motor_Test();
+        Motor_Test();
 
-        // usart_printf(USART3,"Roll:%.1f, gyroy:%hd, gyro_roll_dps:%.1f, roll_out:%.1f\r\n",Roll,gyroy,gyro_roll_dps,roll_out);
-        usart_printf(USART3,"%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.Target,Pitch,pid_rate_pitch.Target,gyro_pitch_dps,pitch_out);
+        // usart_printf(USART3,"%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.Target,Pitch,pid_rate_pitch.Target,gyro_pitch_dps,pitch_out);
+        // usart_printf(USART3,"%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_roll.Target,Roll,pid_rate_roll.Target,gyro_roll_dps,roll_out);
     }
 }
 

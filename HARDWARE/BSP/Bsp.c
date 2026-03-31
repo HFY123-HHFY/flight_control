@@ -33,7 +33,7 @@ void Bsp_Init(void)
   mpu_dmp_init(); // 初始化MPU6050 DMP
   MPU6050_EXTI_Init(); // 初始化MPU6050外部中断
 
-  PWM_Init(PWM_TEST_ARR, PWM_TEST_PSC); // PWM初始化，20kHz（有刷电机）
-  // PWM_Init(2000,840); // 频率50Hz，无刷电机
+  TIM1_PWM_Init(PWM_TEST_ARR, PWM_TEST_PSC); // PWM初始化，20kHz（有刷电机）
+
   PID_Contorl_Init(); // PID控制初始化
 }
