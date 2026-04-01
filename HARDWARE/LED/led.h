@@ -10,8 +10,6 @@
 #define LED3 PEout(4) // 蓝
 
 void LED_Init(void);
-void LED_on(int led);
-void LED_off(int led);
 
 #endif
 

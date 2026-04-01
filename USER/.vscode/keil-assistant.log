@@ -182,3 +182,24 @@ Log at : 2026/4/1|13:18:03|GMT+0800
 
 Log at : 2026/4/1|13:35:23|GMT+0800
 
+Log at : 2026/4/1|16:22:18|GMT+0800
+
+[SyntaxError: Unexpected end of JSON input
+	at JSON.parse (<anonymous>)
+	at I.updateCppProperties (c:\Users\63459\.trae-cn\extensions\cl.keil-assistant-1.6.2\dist\extension.js:1:9859)
+	at I.<anonymous> (c:\Users\63459\.trae-cn\extensions\cl.keil-assistant-1.6.2\dist\extension.js:1:11430)
+	at Generator.next (<anonymous>)
+	at c:\Users\63459\.trae-cn\extensions\cl.keil-assistant-1.6.2\dist\extension.js:1:4480
+	at new Promise (<anonymous>)
+	at r (c:\Users\63459\.trae-cn\extensions\cl.keil-assistant-1.6.2\dist\extension.js:1:4225)
+	at I.load (c:\Users\63459\.trae-cn\extensions\cl.keil-assistant-1.6.2\dist\extension.js:1:10320)
+	at x.<anonymous> (c:\Users\63459\.trae-cn\extensions\cl.keil-assistant-1.6.2\dist\extension.js:1:8120)
+	at Generator.next (<anonymous>)
+	at a (c:\Users\63459\.trae-cn\extensions\cl.keil-assistant-1.6.2\dist\extension.js:1:4282)
+	at process.processTicksAndRejections (node:internal/process/task_queues:105:5)]
+Log at : 2026/4/1|19:54:02|GMT+0800
+
+Log at : 2026/4/1|19:54:07|GMT+0800
+
+Log at : 2026/4/1|21:41:46|GMT+0800
+

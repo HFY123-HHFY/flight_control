@@ -212,10 +212,10 @@ typedef struct
   * @{
   */
 
-#define CAN_Mode_Normal             ((uint8_t)0x00)  /*!< normal mode */
-#define CAN_Mode_LoopBack           ((uint8_t)0x01)  /*!< loopback mode */
-#define CAN_Mode_Silent             ((uint8_t)0x02)  /*!< silent mode */
-#define CAN_Mode_Silent_LoopBack    ((uint8_t)0x03)  /*!< loopback combined with silent mode */
+#define CAN_Mode_Normal             ((uint8_t)0x00)  /*!< normal mode */ //正常模式
+#define CAN_Mode_LoopBack           ((uint8_t)0x01)  /*!< loopback mode */ //环回模式，CAN模块的发送引脚连接到接收引脚，主要用于测试和调试
+#define CAN_Mode_Silent             ((uint8_t)0x02)  /*!< silent mode */ //静默模式，CAN模块只能接收数据，不能发送数据，适用于监听总线上的通信情况
+#define CAN_Mode_Silent_LoopBack    ((uint8_t)0x03)  /*!< loopback combined with silent mode */ //静默环回模式，结合了环回模式和静默模式的特点，既可以进行自我测试，又不会干扰总线上的通信
 
 #define IS_CAN_MODE(MODE) (((MODE) == CAN_Mode_Normal) || \
                            ((MODE) == CAN_Mode_LoopBack)|| \

@@ -5,6 +5,9 @@
 */
 
 // 设置单个GPIO引脚复用功能(AF0~AF15)
+// GPIOx: GPIOA~GPIOI
+// pin: 0~15
+// af: 0~15, 对应AF0~AF15
 void GPIO_AF_Set_Reg(GPIO_TypeDef* GPIOx, uint8_t pin, uint8_t af)
 {
     uint32_t idx = (uint32_t)pin >> 3U;          // 0: AFRL(0~7), 1: AFRH(8~15)
@@ -15,6 +18,12 @@ void GPIO_AF_Set_Reg(GPIO_TypeDef* GPIOx, uint8_t pin, uint8_t af)
 }
 
 // 按位批量配置GPIO模式/输出类型/速度/上下拉
+// GPIOx: GPIOA~GPIOI
+// pinMask: 位设置，每一位对应一个IO
+// mode: 0~3, 模式选择, 0:输入, 1:通用输出, 2:复用功能(AF), 3:模拟输入
+// otype: 0/1, 输出类型, 0:推挽输出, 1:开漏输出
+// ospeed: 0~3, 输入设置，0:低速(2MHz), 1:中速(25MHz), 2:快速(50MHz), 3:高速(100MHz)
+// pupd: 0~2, 上下拉设置, 0:无上下拉, 1:上拉, 2:下拉
 void GPIO_Set_Reg(GPIO_TypeDef* GPIOx,
                   uint16_t pinMask,
                   uint32_t mode,

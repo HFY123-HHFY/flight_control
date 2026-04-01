@@ -153,7 +153,7 @@ void TIM1_PWM_Init_Reg(u32 arr, u32 psc)
 */
 
 // 寄存器+GPIO封装方式: TIM1四通道PWM初始化
-void TIM1_PWM_Init_Reg_WithGpioWrap(u32 arr, u32 psc)
+void TIM1_PWM_Init(u32 arr, u32 psc)
 {
     // 1) 开时钟
     RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;

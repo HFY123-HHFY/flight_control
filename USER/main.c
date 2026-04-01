@@ -10,11 +10,6 @@ int main(void)
 
 	while(1)
 	{
-		Motor_Control(1, speed_temp);
-        Motor_Control(2, speed_temp);
-        Motor_Control(3, speed_temp);
-        Motor_Control(4, speed_temp);
-
 		// printf("Timer_Bsp_t:%d\r\n",Timer_Bsp_t);
 		// usart_printf(USART3,"Pitch:%.1f, Roll:%.1f, Yaw:%.1f,QMC:%.1f,alt:%.1f\r\n",Pitch,Roll,Yaw,Angle_XY,alt);
 /*
@@ -50,6 +45,11 @@ NRF24L01:
 */	
 		// USART3_Data();
 
+/*
+CAN总线调试:
+*/
+		My_Can_TX_Data();
+		My_Can_RX_Data();
 /*
 OLED:
 */

@@ -15,7 +15,6 @@
 #include "key.h"
 #include "OLED.h"
 
-
 #include "Control.h"
 #include "Contol_task.h"
 #include "Pwm.h"
@@ -30,6 +29,7 @@
 #include "QMC5883P.h"
 
 #include "NRF24L01.h"
+#include "My_can.h"
 
 void Bsp_Init(void);
 

@@ -29,11 +29,11 @@
                 "d:\\407_project\\flight_control\\HARDWARE\\QMC5883P",
                 "d:\\407_project\\flight_control\\HARDWARE\\ADC",
                 "d:\\407_project\\flight_control\\HARDWARE\\NVIC_IRQ",
+                "d:\\407_project\\flight_control\\HARDWARE\\My_CAN",
                 "D:\\kei5_39\\MDK_539\\ARM\\ARMCC\\include",
                 "D:\\kei5_39\\MDK_539\\ARM\\ARMCC\\include\\arm_linux",
                 "D:\\kei5_39\\MDK_539\\ARM\\ARMCC\\include\\arm_linux_compat",
                 "D:\\kei5_39\\MDK_539\\ARM\\ARMCC\\include\\rw",
-                "d:\\407_project\\flight_control\\HARDWARE\\My_CAN",
                 "d:\\407_project\\flight_control\\FWLIB\\src",
                 "d:\\407_project\\flight_control"
             ],

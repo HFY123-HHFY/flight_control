@@ -341,7 +341,7 @@
               <MiscControls>--no-multibyte-chars</MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\SYSTEM\Timer;..\HARDWARE\BSP;..\HARDWARE\LED;..\HARDWARE\OLED;..\HARDWARE\usart_1;..\HARDWARE\usart_3;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\Control;..\HARDWARE\Contol_task;..\HARDWARE\NVIC_Int;..\HARDWARE\Pwm;..\HARDWARE\Key;..\HARDWARE\NRF24L01;..\HARDWARE\My_I2C;..\HARDWARE\Motor;..\HARDWARE\BMP280;..\HARDWARE\QMC5883P;..\HARDWARE\ADC;..\HARDWARE\NVIC_IRQ</IncludePath>
+              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\SYSTEM\Timer;..\HARDWARE\BSP;..\HARDWARE\LED;..\HARDWARE\OLED;..\HARDWARE\usart_1;..\HARDWARE\usart_3;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\Control;..\HARDWARE\Contol_task;..\HARDWARE\NVIC_Int;..\HARDWARE\Pwm;..\HARDWARE\Key;..\HARDWARE\NRF24L01;..\HARDWARE\My_I2C;..\HARDWARE\Motor;..\HARDWARE\BMP280;..\HARDWARE\QMC5883P;..\HARDWARE\ADC;..\HARDWARE\NVIC_IRQ;..\HARDWARE\My_CAN</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>

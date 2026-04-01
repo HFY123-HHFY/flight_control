@@ -21,6 +21,8 @@ void Bsp_Init(void)
 	OLED_Init();
 
   NRF24L01_Init(); // 初始化NRF24L01
+
+  My_CAN_Init(); // 初始化CAN总线
 	
 	QMC_Init();
 	// QMC_EXTI_Init();
@@ -33,7 +35,7 @@ void Bsp_Init(void)
   mpu_dmp_init(); // 初始化MPU6050 DMP
   MPU6050_EXTI_Init(); // 初始化MPU6050外部中断
 
-  TIM1_PWM_Init_Reg_WithGpioWrap(PWM_TEST_ARR, PWM_TEST_PSC);
+  TIM1_PWM_Init(PWM_TEST_ARR, PWM_TEST_PSC);
 
   PID_Contorl_Init(); // PID控制初始化
 }
