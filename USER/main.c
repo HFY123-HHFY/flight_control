@@ -10,6 +10,11 @@ int main(void)
 
 	while(1)
 	{
+		Motor_Control(1, speed_temp);
+        Motor_Control(2, speed_temp);
+        Motor_Control(3, speed_temp);
+        Motor_Control(4, speed_temp);
+
 		// printf("Timer_Bsp_t:%d\r\n",Timer_Bsp_t);
 		// usart_printf(USART3,"Pitch:%.1f, Roll:%.1f, Yaw:%.1f,QMC:%.1f,alt:%.1f\r\n",Pitch,Roll,Yaw,Angle_XY,alt);
 /*
@@ -23,12 +28,6 @@ MPU6050:
 		// Set_PID(&pid_rate_pitch, 1.5f, 0.00f, 0.0f); // 设置Pitch内环PID参数
 
 		// usart_printf(USART3, "pitch_output: %.1f,    roll.output: %.1f\r\n", pid_pitch.output, pid_roll.output);
-
-		Motor_Control(1, speed_temp);
-        Motor_Control(2, speed_temp);
-        Motor_Control(3, speed_temp);
-        Motor_Control(4, speed_temp);
-
 /*
 QMC5883L:
 */

@@ -63,9 +63,39 @@
 #define PIout(n)   BIT_ADDR(GPIOI_ODR_Addr,n)  //输出 
 #define PIin(n)    BIT_ADDR(GPIOI_IDR_Addr,n)  //输入
 
+// GPIO寄存器封装参数
+#define REG_GPIO_MODE_INPUT          0U // 输入模式
+#define REG_GPIO_MODE_OUTPUT         1U // 通用输出模式
+#define REG_GPIO_MODE_AF             2U // 复用(AF)功能模式
+#define REG_GPIO_MODE_ANALOG         3U // 模拟输入模式
+
+#define REG_GPIO_OTYPE_PP            0U // 推挽输出
+#define REG_GPIO_OTYPE_OD            1U // 开漏输出
+
+#define REG_GPIO_SPEED_LOW           0U // 低速, 2MHz
+#define REG_GPIO_SPEED_MEDIUM        1U // 中速, 25MHz
+#define REG_GPIO_SPEED_FAST          2U // 快速, 50MHz
+#define REG_GPIO_SPEED_HIGH          3U // 高速, 100MHz
+
+#define REG_GPIO_PUPD_NONE           0U // 无上下拉
+#define REG_GPIO_PUPD_UP             1U // 上拉
+#define REG_GPIO_PUPD_DOWN           2U // 下拉
+
+// GPIO寄存器封装函数
+void GPIO_AF_Set_Reg(GPIO_TypeDef* GPIOx, uint8_t pin, uint8_t af);
+
+// 按位批量配置GPIO模式/输出类型/速度/上下拉
+void GPIO_Set_Reg(GPIO_TypeDef* GPIOx,
+				  uint16_t pinMask,
+				  uint32_t mode,
+				  uint32_t otype,
+				  uint32_t ospeed,
+				  uint32_t pupd);
+
 //以下为汇编函数
 void WFI_SET(void);		//执行WFI指令
 void INTX_DISABLE(void);//关闭所有中断
 void INTX_ENABLE(void);	//开启所有中断
 void MSR_MSP(u32 addr);	//设置堆栈地址 
+
 #endif
