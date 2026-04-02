@@ -1,4 +1,5 @@
 #include "usart_1.h"  
+#include "LC307.h"
 
 uint32_t USART_1_RX = 0;
 
@@ -47,9 +48,12 @@ void usart_1_Init(u32 bound_1)
 // 串口1中断服务函数
 void USART1_IRQHandler(void) 
 {
+	LC307_USART1_IdleHandler();
+
 	if(USART_GetITStatus(USART1, USART_IT_RXNE) == SET) 
 	{
 		USART_1_RX = USART_ReceiveData(USART1); // 读取接收到的数据
+		LC307_USART1_RxByteHandler((uint8_t)USART_1_RX);
 		
 		if(USART_1_RX == 1)
 		{

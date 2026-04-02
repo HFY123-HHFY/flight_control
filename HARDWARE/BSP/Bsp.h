@@ -7,7 +7,7 @@
 #include "Timer.h"
 
 #include "NVIC_IRQ.h"
-#include "usart_1.h"
+#include "usart_2.h"  
 #include "usart_3.h"
 #include "adc.h"
 

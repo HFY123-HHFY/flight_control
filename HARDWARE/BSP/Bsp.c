@@ -12,7 +12,7 @@ void Bsp_Init(void)
   // Key_Init();
 	Adc_Init();
 	
-  usart_1_Init(9600); // 板载调试
+  usart_2_Init(115200); // 板载调试
   usart_3_Init(115200); // 无线串口调试
 
   MyI2C_Init();

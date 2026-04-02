@@ -104,7 +104,7 @@ uint8_t OLED_DisplayBuf[8][128];
  void OLED_W_SCL(uint8_t BitValue)
  {
  	/*根据BitValue的值，将SCL置高电平或者低电平*/
- 	GPIO_WriteBit(GPIOD, GPIO_Pin_5, (BitAction)BitValue);
+ 	GPIO_WriteBit(GPIOA, GPIO_Pin_9, (BitAction)BitValue);
  	delay_us(1);	//延时1us，确保SCL的电平稳定
  	/*如果单片机速度过快，可在此添加适量延时，以避免超出I2C通信的最大速度*/
  	//...
@@ -121,7 +121,7 @@ uint8_t OLED_DisplayBuf[8][128];
  void OLED_W_SDA(uint8_t BitValue)
  {
  	/*根据BitValue的值，将SDA置高电平或者低电平*/
- 	GPIO_WriteBit(GPIOD, GPIO_Pin_6, (BitAction)BitValue);
+ 	GPIO_WriteBit(GPIOA, GPIO_Pin_10, (BitAction)BitValue);
  	delay_us(1);	//延时1us，确保SDA的电平稳定
  	/*如果单片机速度过快，可在此添加适量延时，以避免超出I2C通信的最大速度*/
  	//...
@@ -146,14 +146,14 @@ uint8_t OLED_DisplayBuf[8][128];
  	}
 	
  	/*将SCL和SDA引脚初始化为开漏模式*/
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+  	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
  	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
  	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
  	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
- 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
-  GPIO_Init(GPIOD, &GPIO_InitStructure);
- 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
-  GPIO_Init(GPIOD , &GPIO_InitStructure);
+ 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+  	GPIO_Init(GPIOA, &GPIO_InitStructure);
+ 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+  	GPIO_Init(GPIOA , &GPIO_InitStructure);
 	
  	/*释放SCL和SDA*/
  	OLED_W_SCL(1);
@@ -318,7 +318,7 @@ void OLED_SetCursor(uint8_t Page, uint8_t X)
 	/*因为1.3寸的OLED驱动芯片（SH1106）有132列*/
 	/*屏幕的起始列接在了第2列，而不是第0列*/
 	/*所以需要将X加2，才能正常显示*/
-	X += 2;
+	// X += 2;
 	
 	/*通过指令设置页地址和列地址*/
 	OLED_WriteCommand(0xB0 | Page);					//设置页位置

@@ -13,10 +13,10 @@ int main(void)
 		// printf("Timer_Bsp_t:%d\r\n",Timer_Bsp_t);
 		// usart_printf(USART3,"Pitch:%.1f, Roll:%.1f, Yaw:%.1f,QMC:%.1f,alt:%.1f\r\n",Pitch,Roll,Yaw,Angle_XY,alt);
 /*
-MPU6050:
+MPU6050:eda image copy occupy
 */
 		mpu_angle(); // 读取MPU6050数据
-		// PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
+		PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
 		// Set_PID(&pid_roll, 1.5f, 0.00f, 0.0f); // 设置Roll外环PID参数
 		// Set_PID(&pid_rate_roll, 1.5f, 0.00f, 0.0f); // 设置Roll内环PID参数
 		// Set_PID(&pid_pitch, 1.5f, 0.00f, 0.0f); // 设置Pitch外环PID参数
@@ -45,15 +45,16 @@ NRF24L01:
 */	
 		// USART3_Data();
 
+		printf("Timer_Bsp_t:%d\r\n",Timer_Bsp_t);
+
 /*
 CAN总线调试:
 */
-		My_Can_TX_Data();
-		My_Can_RX_Data();
+		// My_Can_TX_Data();
+		// My_Can_RX_Data();
 /*
 OLED:
-*/
-		// OLED_Clear();
+*/ 
 		// OLED_Printf(0,0,OLED_8X16,"%d",Timer_Bsp_t);
 		// OLED_Update();
 

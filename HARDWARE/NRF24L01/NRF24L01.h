@@ -7,7 +7,6 @@
 #include "Motor.h"
 #include "QMC5883P.h"
 #include "BMP280.h"
-#include "usart_1.h"
 #include "OLED.h"
 #include "LED.h"
 #include "Key.h"

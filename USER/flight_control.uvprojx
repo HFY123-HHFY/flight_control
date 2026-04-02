@@ -341,7 +341,7 @@
               <MiscControls>--no-multibyte-chars</MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\SYSTEM\Timer;..\HARDWARE\BSP;..\HARDWARE\LED;..\HARDWARE\OLED;..\HARDWARE\usart_1;..\HARDWARE\usart_3;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\Control;..\HARDWARE\Contol_task;..\HARDWARE\NVIC_Int;..\HARDWARE\Pwm;..\HARDWARE\Key;..\HARDWARE\NRF24L01;..\HARDWARE\My_I2C;..\HARDWARE\Motor;..\HARDWARE\BMP280;..\HARDWARE\QMC5883P;..\HARDWARE\ADC;..\HARDWARE\NVIC_IRQ;..\HARDWARE\My_CAN</IncludePath>
+              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\SYSTEM\Timer;..\HARDWARE\BSP;..\HARDWARE\LED;..\HARDWARE\OLED;..\HARDWARE\usart_2;..\HARDWARE\usart_3;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\Control;..\HARDWARE\Contol_task;..\HARDWARE\NVIC_Int;..\HARDWARE\Pwm;..\HARDWARE\Key;..\HARDWARE\NRF24L01;..\HARDWARE\My_I2C;..\HARDWARE\Motor;..\HARDWARE\BMP280;..\HARDWARE\QMC5883P;..\HARDWARE\ADC;..\HARDWARE\NVIC_IRQ;..\HARDWARE\My_CAN</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -431,6 +431,11 @@
               <FilePath>..\HARDWARE\Contol_task\Contol_task.c</FilePath>
             </File>
             <File>
+              <FileName>LC307.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\LC307\LC307.c</FilePath>
+            </File>
+            <File>
               <FileName>Pwm.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\Pwm\Pwm.c</FilePath>
@@ -441,9 +446,9 @@
               <FilePath>..\HARDWARE\Motor\Motor.c</FilePath>
             </File>
             <File>
-              <FileName>usart_1.c</FileName>
+              <FileName>usart_2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\HARDWARE\usart_1\usart_1.c</FilePath>
+              <FilePath>..\HARDWARE\usart_2\usart_2.c</FilePath>
             </File>
             <File>
               <FileName>usart_3.c</FileName>
@@ -519,6 +524,11 @@
               <FileName>My_can.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\My_CAN\My_can.c</FilePath>
+            </File>
+            <File>
+              <FileName>usart_2.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\HARDWARE\usart_2\usart_2.h</FilePath>
             </File>
           </Files>
         </Group>

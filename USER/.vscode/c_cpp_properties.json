@@ -13,7 +13,7 @@
                 "d:\\407_project\\flight_control\\HARDWARE\\BSP",
                 "d:\\407_project\\flight_control\\HARDWARE\\LED",
                 "d:\\407_project\\flight_control\\HARDWARE\\OLED",
-                "d:\\407_project\\flight_control\\HARDWARE\\usart_1",
+                "d:\\407_project\\flight_control\\HARDWARE\\usart_2",
                 "d:\\407_project\\flight_control\\HARDWARE\\usart_3",
                 "d:\\407_project\\flight_control\\HARDWARE\\MPU6050",
                 "d:\\407_project\\flight_control\\HARDWARE\\MPU6050\\eMPL",
@@ -34,6 +34,7 @@
                 "D:\\kei5_39\\MDK_539\\ARM\\ARMCC\\include\\arm_linux",
                 "D:\\kei5_39\\MDK_539\\ARM\\ARMCC\\include\\arm_linux_compat",
                 "D:\\kei5_39\\MDK_539\\ARM\\ARMCC\\include\\rw",
+                "d:\\407_project\\flight_control\\HARDWARE\\LC307",
                 "d:\\407_project\\flight_control\\FWLIB\\src",
                 "d:\\407_project\\flight_control"
             ],

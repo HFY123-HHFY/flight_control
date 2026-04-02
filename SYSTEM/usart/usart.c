@@ -76,7 +76,7 @@ void usart_send_array(USART_TypeDef* USARTx, uint8_t *Array, uint16_t Length)
 // 重定向 C 库函数 printf 到串口
 int fputc(int ch, FILE *f)
 {
-    usart_send_byte(USART1, (uint8_t) ch); // 这里假设使用 USART1
+    usart_send_byte(USART2, (uint8_t) ch); // 这里假设使用 USART2
     return ch;
 }
 

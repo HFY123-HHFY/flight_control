@@ -21,7 +21,7 @@ void My_CAN_Init(void)
 	
 	CAN_InitTypeDef CAN_InitStructure;
 	CAN_StructInit(&CAN_InitStructure);
-	CAN_InitStructure.CAN_Mode = CAN_Mode_LoopBack;	//环回模式，发送的数据会直接接收，适用于测试代码功能是否正确，调试完成后可以改为CAN_Mode_Normal
+	CAN_InitStructure.CAN_Mode = CAN_Mode_Normal;
 	CAN_InitStructure.CAN_Prescaler = 48;		//波特率 = 36M / 48 / (1 + 2 + 3) = 125K
 	CAN_InitStructure.CAN_BS1 = CAN_BS1_2tq;
 	CAN_InitStructure.CAN_BS2 = CAN_BS2_3tq;
