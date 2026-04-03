@@ -2,7 +2,6 @@
 #define __LED_H
 
 #include "sys.h"
-#include "delay.h"
 
 //LED端口定义
 #define LED1 PEout(2) // 绿

@@ -341,7 +341,7 @@
               <MiscControls>--no-multibyte-chars</MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\SYSTEM\Timer;..\HARDWARE\BSP;..\HARDWARE\LED;..\HARDWARE\OLED;..\HARDWARE\usart_2;..\HARDWARE\usart_3;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\Control;..\HARDWARE\Contol_task;..\HARDWARE\NVIC_Int;..\HARDWARE\Pwm;..\HARDWARE\Key;..\HARDWARE\NRF24L01;..\HARDWARE\My_I2C;..\HARDWARE\Motor;..\HARDWARE\BMP280;..\HARDWARE\QMC5883P;..\HARDWARE\ADC;..\HARDWARE\NVIC_IRQ;..\HARDWARE\My_CAN</IncludePath>
+              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\SYSTEM\Timer;..\HARDWARE\BSP;..\HARDWARE\LED;..\HARDWARE\OLED;..\HARDWARE\usart_1;..\HARDWARE\usart_2;..\HARDWARE\usart_3;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\Control;..\HARDWARE\Control_task;..\HARDWARE\NVIC_Int;..\HARDWARE\Pwm;..\HARDWARE\Key;..\HARDWARE\NRF24L01;..\HARDWARE\My_I2C;..\HARDWARE\Motor;..\HARDWARE\BMP280;..\HARDWARE\QMC5883P;..\HARDWARE\ADC;..\HARDWARE\NVIC_IRQ;..\HARDWARE\My_CAN;..\HARDWARE\LC307</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -421,14 +421,14 @@
               <FilePath>..\HARDWARE\Control\Control.c</FilePath>
             </File>
             <File>
+              <FileName>Control_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\Control_task\Control_task.c</FilePath>
+            </File>
+            <File>
               <FileName>NVIC_IRQ.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\NVIC_IRQ\NVIC_IRQ.c</FilePath>
-            </File>
-            <File>
-              <FileName>Contol_task.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\HARDWARE\Contol_task\Contol_task.c</FilePath>
             </File>
             <File>
               <FileName>LC307.c</FileName>
@@ -444,6 +444,11 @@
               <FileName>Motor.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\Motor\Motor.c</FilePath>
+            </File>
+            <File>
+              <FileName>usart_1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\usart_1\usart_1.c</FilePath>
             </File>
             <File>
               <FileName>usart_2.c</FileName>
@@ -526,9 +531,9 @@
               <FilePath>..\HARDWARE\My_CAN\My_can.c</FilePath>
             </File>
             <File>
-              <FileName>usart_2.h</FileName>
+              <FileName>Control_task.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\HARDWARE\usart_2\usart_2.h</FilePath>
+              <FilePath>..\HARDWARE\Control_task\Control_task.h</FilePath>
             </File>
           </Files>
         </Group>

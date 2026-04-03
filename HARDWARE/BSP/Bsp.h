@@ -7,6 +7,7 @@
 #include "Timer.h"
 
 #include "NVIC_IRQ.h"
+#include "usart_1.h"  
 #include "usart_2.h"  
 #include "usart_3.h"
 #include "adc.h"
@@ -16,7 +17,7 @@
 #include "OLED.h"
 
 #include "Control.h"
-#include "Contol_task.h"
+#include "Control_task.h"
 #include "Pwm.h"
 #include "Motor.h"
 
@@ -27,6 +28,7 @@
 
 #include "bmp280.h"
 #include "QMC5883P.h"
+#include "LC307.h"
 
 #include "NRF24L01.h"
 #include "My_can.h"

@@ -1,21 +1,18 @@
 #include "LC307.h"
-#include "delay.h"
-#include "stm32f4xx_gpio.h"
-#include "stm32f4xx_rcc.h"
-#include "stm32f4xx_usart.h"
-#include <string.h>
 
+// 光流模块丢失位置设备标志位，0表示正常，1表示丢失
 uint8_t g_lost_pos_dev = 0;
 
-#define LC307_BUFFER_LEN      14U
-#define LC307_TIMEOUT_TICKS   84000U
+// 存放光流原始数据的长度和数据
+#define BUFFER_LEN 14
+static uint8_t serialbuffer[BUFFER_LEN];
 
-#define LC307_ERR_XOR         1U
-#define LC307_ERR_ACK         2U
+// 光流模块错误码
+#define xor_err 1
+#define ack_err 2
 
-static uint8_t serialbuffer[LC307_BUFFER_LEN];
+// 光流模块初始化标志位
 static uint8_t LC307_InitFlag = 0;
-static uint8_t lc307_rx_index = 0U;
 
 // 光流数据配置表
 static const uint8_t tab_BF3901_60hz[] = {
@@ -32,216 +29,399 @@ static const uint8_t tab_BF3901_60hz[] = {
 0xd3, 0x09, 0xd4, 0x2a, 0xee, 0x4c, 0x7e, 0xfa, 0x74, 0xa7, 0x78, 0x4e, 0x60, 0xe7, 0x61, 0xc8, 0x6d, 0x70, 0x1e, 0x39, 0x98, 0x1a, 0x9d, 0xf0
 };
 
-#pragma pack(1)
-typedef struct
+// ============================
+// 串口和 DMA 控制层
+// ============================
+
+// 配置 USART1 的中断模式：LC307 使用 IDLE 中断 + DMA，关闭 RXNE 中断避免冲突
+static void uart1_IT_enableConfig(uint8_t en)
 {
-    uint8_t head1;
-    uint8_t bufcount;
-    short flowX;
-    short flowY;
-    uint16_t timespan;
-    uint16_t distance;
-    uint8_t quality;
-    uint8_t version;
-    uint8_t XORSum;
-    uint8_t end;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	FunctionalState SetState = ENABLE;
+
+	if (en == 0U) 
+    {
+		SetState = DISABLE;
+	}
+
+	USART_ITConfig(USART1, USART_IT_IDLE, SetState);
+	USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
+
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = SetState;
+	NVIC_Init(&NVIC_InitStructure);
+}
+
+// 配置 USART1_RX 对应的 DMA2 Stream2（单次模式），用于每帧 14 字节搬运
+static void uart1_dma_enableConfig(uint8_t en)
+{
+	// 关闭 DMA2 Stream2 并等待硬件确认关闭
+	DMA2_Stream2->CR &= ~DMA_SxCR_EN;
+	while ((DMA2_Stream2->CR & DMA_SxCR_EN) != 0U) 
+    {
+
+	}
+
+	// 清理 Stream2 的所有中断状态
+	DMA2->LIFCR = DMA_LIFCR_CFEIF2 | DMA_LIFCR_CDMEIF2 | DMA_LIFCR_CTEIF2 |
+	              DMA_LIFCR_CHTIF2 | DMA_LIFCR_CTCIF2;
+
+	// 关闭时只需要关 USART DMA 请求
+	if (en == 0U) 
+    {
+		USART1->CR3 &= ~USART_CR3_DMAR;
+		return;
+	}
+
+	DMA2_Stream2->PAR = (uint32_t)&(USART1->DR);
+	DMA2_Stream2->M0AR = (uint32_t)serialbuffer;
+	DMA2_Stream2->NDTR = BUFFER_LEN;
+
+	// CH4 + 外设到内存 + 内存地址递增 + 高优先级 + 单次模式
+	DMA2_Stream2->CR = (4U << 25) | DMA_SxCR_MINC | DMA_SxCR_PL_1;
+	DMA2_Stream2->FCR = 0U;
+
+	USART1->CR3 |= USART_CR3_DMAR;
+	DMA2_Stream2->CR |= DMA_SxCR_EN;
+}
+
+// 向 LC307 发送命令，逐字节阻塞发送，适合初始化配置阶段使用
+static void LC307_SendData(uint8_t *data, uint16_t len)
+{
+	uint16_t i;
+	for (i = 0; i < len; i++) 
+    {
+		USART_SendData(USART1, data[i]);
+		while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET)
+        {
+
+		}
+	}
+}
+
+// 阻塞读取 LC307 返回数据（用于上电配置阶段）
+// 这里用于等待模块返回 ACK/应答帧，不适合放在实时循环里
+static void LC307_RecvData(uint8_t *data, uint16_t len)
+{
+	uint32_t waittime = 0;
+	uint16_t i;
+
+	for (i = 0; i < len; i++) 
+    {
+		while (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET) 
+        {
+			waittime++;
+			if (waittime >= 84000U) 
+            {
+				g_lost_pos_dev = 1;
+				return;
+			}
+		}
+		data[i] = (uint8_t)USART_ReceiveData(USART1);
+		waittime = 0;
+	}
+}
+
+// 重新装载 DMA 接收缓存并启动下一帧接收
+// IDLE 中断进来后会停 DMA、处理当前帧，然后调用这里准备下一帧
+static void start_dma_recv(void)
+{
+	DMA2_Stream2->CR &= ~DMA_SxCR_EN;
+	while ((DMA2_Stream2->CR & DMA_SxCR_EN) != 0U) 
+    {
+        
+	}
+	DMA2->LIFCR = DMA_LIFCR_CFEIF2 | DMA_LIFCR_CDMEIF2 | DMA_LIFCR_CTEIF2 |
+	              DMA_LIFCR_CHTIF2 | DMA_LIFCR_CTCIF2;
+	DMA2_Stream2->NDTR = BUFFER_LEN;
+	DMA2_Stream2->M0AR = (uint32_t)serialbuffer;
+	DMA2_Stream2->CR |= DMA_SxCR_EN;
+}
+
+// 对 payload 执行异或校验
+// LC307 协议中，部分数据包用 XOR 作为简单校验
+static uint8_t XOR_Checksum(const uint8_t *data, uint16_t length)
+{
+	uint8_t xor_result = 0;
+	uint16_t i;
+
+	for (i = 0; i < length; i++) 
+    {
+		xor_result ^= data[i];
+	}
+	return xor_result;
+}
+
+// ============================
+// 光流协议帧定义
+// ============================
+
+// 1帧光流数据内容
+#pragma pack(1)
+typedef struct {
+	uint8_t head1;
+	uint8_t bufcount;
+	int16_t flowX;
+	int16_t flowY;
+	uint16_t timespan;
+	uint16_t distance;
+	uint8_t quality;
+	uint8_t version;
+	uint8_t XORSum;
+	uint8_t end;
 } OpticalFlowFrame_t;
 #pragma pack()
 
+// 解析后的单帧数据缓存，保存最近一次收到的有效光流帧
 static OpticalFlowFrame_t opfRecv_Frame = {0};
-static float speed[2] = {0.0f};
 
-__weak void getOpticalFlowResult_Callback(float *buf)
-{
-    (void)buf;
-}
+// ============================
+// 光流结果缓存与对外接口
+// ============================
 
-static uint8_t XOR_Checksum(const uint8_t *data, uint16_t length)
+// 光流任务节拍标志位
+uint8_t lc307_speed_task_flag = 0; // 20ms：速度环节拍
+uint8_t lc307_pos_task_flag = 0; // 40ms：位置环节拍
+
+// 光流解算后的数据
+float g_lc307_speed_x = 0.0f; // 机体 X 方向速度，单位 m/s，已经做了比例换算和补偿
+float g_lc307_speed_y = 0.0f; // 机体 Y 方向速度，单位 m/s，已经做了比例换算和补偿
+
+// 光流积分位置
+float g_lc307_pos_x = 0.0f; // 机体 X 方向累计位移，单位 m，建议通过 LC307_UpdatePosition() 定期积分更新
+float g_lc307_pos_y = 0.0f; // 机体 Y 方向累计位移，单位 m，建议通过 LC307_UpdatePosition() 定期积分更新
+
+static float use_distance = 1.0f; // 当前飞行高度/测距值，单位米，建议通过 LC307_SetHeight() 定期更新，用于速度换算和补偿
+static float gx_filtered = 0.0f; // 角速度补偿量，单位 dps，范围建议 -2 ~ +2，建议通过 LC307_SetGyroCompensation() 定期更新，用于修正机体转动对光流的影响
+static float gy_filtered = 0.0f; // 角速度补偿量，单位 dps，范围建议 -2 ~ +2，建议通过 LC307_SetGyroCompensation() 定期更新，用于修正机体转动对光流的影响
+
+// 积分内部状态：用于梯形积分
+static float g_lc307_speed_x_prev = 0.0f; // 上一周期的 X 方向速度，用于梯形积分计算
+static float g_lc307_speed_y_prev = 0.0f; // 上一周期的 Y 方向速度，用于梯形积分计算
+
+// 限幅函数，限制补偿量在合理范围内，避免过度补偿导致数据异常
+static float LC307_Clamp(float value, float min_value, float max_value)
 {
-    uint8_t xor_result = 0U;
-    uint16_t i = 0U;
-    for (i = 0U; i < length; i++)
+	if (value < min_value) 
     {
-        xor_result ^= data[i];
-    }
-    return xor_result;
-}
-
-static void uart1_init(void)
-{
-    GPIO_InitTypeDef GPIO_InitStructure;
-    USART_InitTypeDef USART_InitStructure;
-
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_USART1);
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_USART1);
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-    USART_InitStructure.USART_BaudRate = 19200;
-    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-    USART_InitStructure.USART_StopBits = USART_StopBits_1;
-    USART_InitStructure.USART_Parity = USART_Parity_No;
-    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-    USART_Init(USART1, &USART_InitStructure);
-    USART_Cmd(USART1, ENABLE);
-}
-
-static void LC307_SendData(const uint8_t *data, uint16_t len)
-{
-    uint16_t i = 0U;
-    for (i = 0U; i < len; i++)
+		return min_value;
+	}
+	if (value > max_value) 
     {
-        USART_SendData(USART1, data[i]);
-        while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET)
-        {
-        }
-    }
+		return max_value;
+	}
+	return value;
 }
 
-static uint8_t LC307_RecvData(uint8_t *data, uint16_t len)
+// 设置当前飞行高度/测距值，单位是米，用于光流速度换算和尺度补偿
+void LC307_SetHeight(float distance)
 {
-    uint16_t i = 0U;
-    uint32_t waittime = 0U;
-
-    for (i = 0U; i < len; i++)
-    {
-        waittime = 0U;
-        while (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == RESET)
-        {
-            waittime++;
-            if (waittime >= LC307_TIMEOUT_TICKS)
-            {
-                g_lost_pos_dev = 1U;
-                return 0U;
-            }
-        }
-
-        data[i] = (uint8_t)USART_ReceiveData(USART1);
-    }
-
-    return 1U;
+	use_distance = distance;
 }
 
+// 设置角速度补偿量，单位是 dps，范围建议 -2 ~ +2
+// 外部一般传入已经滤波后的角速度分量
+void LC307_SetGyroCompensation(float gx, float gy)
+{
+	gx_filtered = gx;
+	gy_filtered = gy;
+}
+
+// 位置积分更新：由速度积分得到位移，建议放在固定周期任务中调用
+void LC307_UpdatePosition(float dt_s)
+{
+	if (dt_s <= 0.0f) 
+    {
+		return;
+	}
+
+	// 光流异常时不积分，避免错误累积
+	if (g_lost_pos_dev != 0U) 
+    {
+		g_lc307_speed_x_prev = g_lc307_speed_x;
+		g_lc307_speed_y_prev = g_lc307_speed_y;
+		return;
+	}
+
+	// 梯形积分：x(k)=x(k-1)+0.5*(v(k)+v(k-1))*dt
+	g_lc307_pos_x += 0.5f * (g_lc307_speed_x + g_lc307_speed_x_prev) * dt_s;
+	g_lc307_pos_y += 0.5f * (g_lc307_speed_y + g_lc307_speed_y_prev) * dt_s;
+
+	// 防止长时间积分发散，先做一个安全限幅
+	g_lc307_pos_x = LC307_Clamp(g_lc307_pos_x, -5.0f, 5.0f);
+	g_lc307_pos_y = LC307_Clamp(g_lc307_pos_y, -5.0f, 5.0f);
+
+	g_lc307_speed_x_prev = g_lc307_speed_x;
+	g_lc307_speed_y_prev = g_lc307_speed_y;
+}
+
+// 清零累计位移和积分历史速度
+void LC307_ResetPosition(void)
+{
+	g_lc307_pos_x = 0.0f;
+	g_lc307_pos_y = 0.0f;
+	g_lc307_speed_x_prev = g_lc307_speed_x;
+	g_lc307_speed_y_prev = g_lc307_speed_y;
+}
+
+// 光流数据处理回调函数的弱定义
+// 你的工程里如果需要更复杂的处理，可以在别的 .c 文件里重写这个函数
+__weak void getOpticalFlowResult_Callback(float* buf)
+{
+	// 原始光流速度：buf[0]=X, buf[1]=Y
+	// 这里把商家给的比例和旋转补偿逻辑封装起来，外部只读 speedX/speedY 即可
+	g_lc307_speed_y = -buf[0] / 200.0f;
+	g_lc307_speed_x = -buf[1] / 200.0f;
+
+	// 使用高度和角速度补偿修正光流速度，适合后续位置积分
+	g_lc307_speed_y = use_distance * (g_lc307_speed_y - LC307_Clamp(gx_filtered, -2.0f, 2.0f));
+	g_lc307_speed_x = use_distance * (g_lc307_speed_x + LC307_Clamp(gy_filtered, -2.0f, 2.0f));
+
+	// 有效数据到达后，丢失标志清零
+	g_lost_pos_dev = 0;
+}
+
+// ============================
+// 帧解析与中断入口
+// ============================
+
+// LC307 帧解析：校验通过后提取 flowX/flowY 并回调给上层
+// 光流数据处理回调函数：在串口空闲中断中触发
 static void LC307_Callback(uint16_t size)
 {
-    if ((size == LC307_BUFFER_LEN) && (serialbuffer[0] == 0xFEU))
+	if ((size == 14U) && (serialbuffer[0] == 0xFEU)) 
     {
-        if (serialbuffer[12] == XOR_Checksum(&serialbuffer[2], 10U))
+		// 帧头正确后，再做 XOR 校验，避免把脏数据当成有效帧
+		if (serialbuffer[12] == XOR_Checksum(&serialbuffer[2], 10)) 
         {
-            LC307_InitFlag = 1U;
-            memcpy(&opfRecv_Frame, serialbuffer, sizeof(OpticalFlowFrame_t));
+			LC307_InitFlag = 1;
+			memcpy(&opfRecv_Frame, serialbuffer, sizeof(OpticalFlowFrame_t));
 
-            speed[0] = (float)opfRecv_Frame.flowX;
-            speed[1] = (float)opfRecv_Frame.flowY;
-
-            getOpticalFlowResult_Callback(speed);
-        }
-    }
+			// 只把协议中的 flowX / flowY 传给上层回调，后续处理由回调决定
+			{
+				float raw_speed[2];
+				raw_speed[0] = (float)opfRecv_Frame.flowX;
+				raw_speed[1] = (float)opfRecv_Frame.flowY;
+				getOpticalFlowResult_Callback(raw_speed);
+			}
+		}
+	}
 }
 
+// 启动 LC307 连续接收（IDLE 中断 + DMA）
+// 调用一次即可，后续由中断自动处理每一帧数据
 void Opf_LC307_Start(void)
 {
-    lc307_rx_index = 0U;
+	uart1_IT_enableConfig(1);
+	uart1_dma_enableConfig(1);
 }
 
+// LC307 初始化：上电后先短暂打开接收链路检测模块状态，若未持续输出则进入配置阶段
+// 返回 0 表示初始化成功，非 0 表示握手/校验失败
 uint8_t Opf_LC307_Init(void)
 {
-    uint8_t step1_initbuf[7] = {0xAA, 0xAB, 0x96, 0x26, 0xBC, 0x50, 0x5C};
-    uint8_t feedbackbuf[3] = {0};
-    uint16_t i = 0U;
+	uint8_t feedbackbuf[3] = {0};
 
-    uart1_init();
+	// USART1 初始化由工程公共串口驱动完成，这里直接复用
+	usart_1_Init(19200);
 
-    delay_ms(200);
+	// LC307 使用 DMA2 接收，单独打开 DMA2 时钟
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
 
-    if (LC307_InitFlag)
+	// 先短暂打开接收链路，检测模块是否已在持续输出
+	uart1_IT_enableConfig(1);
+	uart1_dma_enableConfig(1);
+	delay_ms(200);
+	uart1_IT_enableConfig(0);
+	uart1_dma_enableConfig(0);
+
+	// 若已收到合法数据帧，说明模块已初始化完成，直接返回
+	if (LC307_InitFlag) 
     {
-        return 0U;
-    }
-    else
+		return 0;
+	} 
+    else 
     {
-        (void)USART_ReceiveData(USART1);
-    }
+		// 清一次 DR，避免残留数据影响后续握手
+		USART_ReceiveData(USART1);
+	}
 
-    LC307_SendData(step1_initbuf, 7U);
-    if (!LC307_RecvData(feedbackbuf, 3U))
+	// step1：进入配置模式
+	{
+		uint8_t step1_initbuf[7] = {0xAA, 0xAB, 0x96, 0x26, 0xbc, 0x50, 0x5C};
+		LC307_SendData(step1_initbuf, 7);
+	}
+
+	// 等待模块对 step1 的 ACK
+	LC307_RecvData(feedbackbuf, 3);
+	if (((feedbackbuf[0] ^ feedbackbuf[1]) != feedbackbuf[2])) 
     {
-        return LC307_ERR_ACK;
-    }
-
-    if (((uint8_t)(feedbackbuf[0] ^ feedbackbuf[1])) != feedbackbuf[2])
+		g_lost_pos_dev = 1;
+		return xor_err;
+	}
+	if (feedbackbuf[1] != 0x00U) 
     {
-        g_lost_pos_dev = 1U;
-        return LC307_ERR_XOR;
-    }
+		g_lost_pos_dev = 1;
+		return ack_err;
+	}
 
-    if (feedbackbuf[1] != 0x00U)
+	// step2 配置：按寄存器表逐项下发并校验 ACK
+	// 这里是传感器的参数表，决定输出频率和内部工作模式
+	for (uint16_t i = 0; i < (sizeof(tab_BF3901_60hz) / sizeof(uint8_t)); i += 2) 
     {
-        g_lost_pos_dev = 1U;
-        return LC307_ERR_ACK;
-    }
+		uint8_t buf[5] = {0xBB, 0xDC, tab_BF3901_60hz[i], tab_BF3901_60hz[i + 1], 0};
+		buf[4] = (uint8_t)(buf[1] ^ buf[2] ^ buf[3]);
+		LC307_SendData(buf, 5);
 
-    for (i = 0U; i < (uint16_t)sizeof(tab_BF3901_60hz); i += 2U)
-    {
-        uint8_t buf[5] = {0xBB, 0xDC, tab_BF3901_60hz[i], tab_BF3901_60hz[i + 1U], 0U};
-        buf[4] = (uint8_t)(buf[1] ^ buf[2] ^ buf[3]);
-        LC307_SendData(buf, 5U);
-
-        if (!LC307_RecvData(feedbackbuf, 3U))
+		// 每条配置都要检查返回值，确保参数被模块接受
+		LC307_RecvData(feedbackbuf, 3);
+		if (((feedbackbuf[0] ^ feedbackbuf[1]) != feedbackbuf[2])) 
         {
-            return LC307_ERR_ACK;
-        }
-
-        if (((uint8_t)(feedbackbuf[0] ^ feedbackbuf[1])) != feedbackbuf[2])
+			g_lost_pos_dev = 1;
+			return xor_err;
+		}
+		if (feedbackbuf[1] != 0x00U) 
         {
-            g_lost_pos_dev = 1U;
-            return LC307_ERR_XOR;
-        }
+			g_lost_pos_dev = 1;
+			return ack_err;
+		}
+	}
 
-        if (feedbackbuf[1] != 0x00U)
-        {
-            g_lost_pos_dev = 1U;
-            return LC307_ERR_ACK;
-        }
-    }
+	// step3 发送结束配置命令，进入正常输出模式
+	{
+		uint8_t closecfg = 0xDD;
+		LC307_SendData(&closecfg, 1);
+	}
 
-    {
-        uint8_t closecfg = 0xDD;
-        LC307_SendData(&closecfg, 1U);
-    }
-
-    LC307_InitFlag = 1U;
-    return 0U;
+	LC307_InitFlag = 1;
+	return 0;
 }
 
-void LC307_USART1_IdleHandler(void)
+void USART1_IRQHandler(void)
 {
-}
-
-void LC307_USART1_RxByteHandler(uint8_t data)
-{
-    if (lc307_rx_index == 0U)
+	// USART1 空闲中断：表示一帧串口数据接收完成
+	if (USART_GetFlagStatus(USART1, USART_FLAG_IDLE) != RESET) 
     {
-        if (data != 0xFEU)
+		// 读 SR + DR 清除 IDLE 标志
+		USART1->SR;
+		USART1->DR;
+
+		// 停止 DMA，计算本次实际接收字节数
+		DMA2_Stream2->CR &= ~DMA_SxCR_EN;
+		while ((DMA2_Stream2->CR & DMA_SxCR_EN) != 0U) 
         {
-            return;
-        }
-    }
 
-    serialbuffer[lc307_rx_index] = data;
-    lc307_rx_index++;
+		}
 
-    if (lc307_rx_index >= LC307_BUFFER_LEN)
-    {
-        LC307_Callback(LC307_BUFFER_LEN);
-        lc307_rx_index = 0U;
-    }
+		// 由剩余计数反推出本次帧长度，然后交给解析函数处理
+		{
+			uint8_t size = (uint8_t)(BUFFER_LEN - DMA2_Stream2->NDTR);
+			LC307_Callback(size); //读取光流x、y速度，并做补偿
+		}
+
+		// 重新开启 DMA，准备接收下一帧数据
+		start_dma_recv();
+	}
 }

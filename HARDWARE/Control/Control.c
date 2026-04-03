@@ -240,6 +240,28 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
     }
 }
 
+// 光流速度环控制
+void LC307_Speed_Control(void)
+{
+    // 光流速度环入口-20ms
+    if (lc307_speed_task_flag)
+    {
+        lc307_speed_task_flag = 0;
+        //......预留速度环逻辑
+    }
+}
+
+// 光流位置环控制
+void LC307_Position_Control(void)
+{
+    // 光流位置环入口-40ms
+    if (lc307_pos_task_flag)
+    {
+        lc307_pos_task_flag = 0;
+        //......预留位置环逻辑
+    }
+}
+
 // 设置PID参数
 void Set_PID(PID_TypeDef* pid, float kp, float ki, float kd)
 {

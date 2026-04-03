@@ -1,5 +1,5 @@
-#ifndef __CONTOL_TASK_H
-#define __CONTOL_TASK_H
+#ifndef __CONTROL_TASK_H
+#define __CONTROL_TASK_H
 
 #include "Bsp.h"
 

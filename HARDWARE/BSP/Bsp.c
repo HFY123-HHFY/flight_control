@@ -12,7 +12,7 @@ void Bsp_Init(void)
   // Key_Init();
 	Adc_Init();
 	
-  usart_2_Init(115200); // 板载调试
+  usart_2_Init(9600); // 板载调试
   usart_3_Init(115200); // 无线串口调试
 
   MyI2C_Init();
@@ -34,6 +34,10 @@ void Bsp_Init(void)
   MPU_Init(); // 初始化MPU6050
   mpu_dmp_init(); // 初始化MPU6050 DMP
   MPU6050_EXTI_Init(); // 初始化MPU6050外部中断
+
+  //光流模块初始化
+	Opf_LC307_Init();
+	Opf_LC307_Start();
 
   TIM1_PWM_Init(PWM_TEST_ARR, PWM_TEST_PSC);
 
