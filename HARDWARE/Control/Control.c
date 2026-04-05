@@ -1,5 +1,22 @@
 #include "Control.h"
 
+static uint16_t DShot_ThrottleClamp(float val)
+{
+    if (val <= 0.0f)
+    {
+        return 0U;
+    }
+    if (val < (float)DSHOT_THROTTLE_MIN)
+    {
+        return DSHOT_THROTTLE_MIN;
+    }
+    if (val > (float)DSHOT_THROTTLE_MAX)
+    {
+        return DSHOT_THROTTLE_MAX;
+    }
+    return (uint16_t)val;
+}
+
 // 1开，0关
 uint8_t pid_flag = 0; // pid 控制标志，1启用，0禁用
 uint8_t pid_enabled = 1; //PID计算标志，1启用，0禁用
@@ -163,12 +180,20 @@ void PID_right_out(void)
 {
     if (pid_flag == 1)
     {
+        uint16_t m1;
+        uint16_t m2;
+        uint16_t m3;
+        uint16_t m4;
+
         pid_enabled = 1; //启用PID计算
         PID_OUT(Pitch, Roll, Yaw, alt);
-        Motor_Control(1, pid_alt.output + pid_pitch.output - pid_roll.output + pid_yaw.output);
-        Motor_Control(2, pid_alt.output + pid_pitch.output + pid_roll.output - pid_yaw.output);
-        Motor_Control(3, pid_alt.output - pid_pitch.output + pid_roll.output + pid_yaw.output);
-        Motor_Control(4, pid_alt.output - pid_pitch.output - pid_roll.output - pid_yaw.output);
+
+        // 四路混控应一次性下发为一帧，避免后续调用把前面通道覆盖为0
+        m1 = DShot_ThrottleClamp((float)speed_temp + pid_pitch.output + pid_roll.output);
+        m2 = DShot_ThrottleClamp((float)speed_temp - pid_pitch.output + pid_roll.output);
+        m3 = DShot_ThrottleClamp((float)speed_temp + pid_pitch.output - pid_roll.output);
+        m4 = DShot_ThrottleClamp((float)speed_temp - pid_pitch.output - pid_roll.output);
+        TIM1_DShot_Write(m1, m2, m3, m4);
     }
     else if (pid_flag == 0)
     {
@@ -180,10 +205,7 @@ void PID_right_out(void)
         pid_rate_pitch.output = 0;
         pid_rate_roll.output = 0;
         pid_rate_yaw.output = 0;
-        Motor_Control(1, 0);
-        Motor_Control(2, 0);
-        Motor_Control(3, 0);
-        Motor_Control(4, 0);
+        TIM1_DShot_Write(0, 0, 0, 0);
     }
 }
 
@@ -234,7 +256,7 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
 				
          //加载输出到电机上
         Motor_Test();
-
+        
         // usart_printf(USART3,"%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.Target,Pitch,pid_rate_pitch.Target,gyro_pitch_dps,pitch_out);
         // usart_printf(USART3,"%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_roll.Target,Roll,pid_rate_roll.Target,gyro_roll_dps,roll_out);
     }

@@ -1,165 +1,134 @@
 #include "Pwm.h"
 
-//库函数方式:设置定时器1的4个通道为PWM输出模式
-/*
-    void TIM1_PWM_Init(u32 arr, u32 psc)
+//Dshot300 --> 300k bit/s  PWM频率需要为 300k
+// DShot300 协议位宽: 定时器周期 560 tick 时, 75%/37.5% 分别对应逻辑 1/0
+#define DSHOT_BIT_1_TICKS            420U
+#define DSHOT_BIT_0_TICKS            210U
+#define DSHOT_FRAME_BITS             16U // DShot数据帧长度, 不包含帧尾间隔
+#define DSHOT_FRAME_BUF_LEN          20U // 包含16位数据和4位帧尾间隔
+
+// TIM1_UP 对应 DMA2 Stream5, Channel6 (STM32F407)
+#define DSHOT_DMA_STREAM             DMA2_Stream5
+#define DSHOT_DMA_CLEAR_MASK         (DMA_HIFCR_CFEIF5 | DMA_HIFCR_CDMEIF5 | DMA_HIFCR_CTEIF5 | DMA_HIFCR_CHTIF5 | DMA_HIFCR_CTCIF5)
+
+static uint16_t g_dshot_cmd[DSHOT_FRAME_BUF_LEN][4] = {0};
+static uint16_t g_dshot_throttle[4] = {0, 0, 0, 0};
+
+// 将4路电机的DShot命令打包成TIM1的CCR寄存器值, 通过DMA自动更新发送
+static uint16_t DShot_PacketEncode(uint16_t throttle, uint8_t telemetry)
 {
-    GPIO_InitTypeDef GPIO_InitStructure;
-    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
-    TIM_OCInitTypeDef  TIM_OCInitStructure;
+    uint16_t packet;
+    uint8_t crc;
 
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE); 
+    if (throttle > DSHOT_THROTTLE_MAX)
+    {
+        throttle = DSHOT_THROTTLE_MAX;
+    }
 
-    GPIO_PinAFConfig(GPIOE, GPIO_PinSource9, GPIO_AF_TIM1); 
-    GPIO_PinAFConfig(GPIOE, GPIO_PinSource11, GPIO_AF_TIM1);
-    GPIO_PinAFConfig(GPIOE, GPIO_PinSource13, GPIO_AF_TIM1); 
-    GPIO_PinAFConfig(GPIOE, GPIO_PinSource14, GPIO_AF_TIM1);
-
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF; 
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz; 
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP; 
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP; 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_11 | GPIO_Pin_13 | GPIO_Pin_14; 
-    GPIO_Init(GPIOE, &GPIO_InitStructure); 
-
-    TIM_TimeBaseStructure.TIM_Period = arr - 1; 
-    TIM_TimeBaseStructure.TIM_Prescaler = psc - 1; 
-    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1; 
-    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;  
-    TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
-
-    TIM_OCStructInit(&TIM_OCInitStructure); // 初始化TIM_OCInitStructure结构体为默认值，避免未设置参数导致寄存器状态不确定
-    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-    TIM_OCInitStructure.TIM_Pulse = 0;
-    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
-
-    // TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Disable;
-    // TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_High;
-    // TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset;
-    // TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCNIdleState_Reset;
-
-    TIM_OC1Init(TIM1, &TIM_OCInitStructure);
-    TIM_OC1PreloadConfig(TIM1, TIM_OCPreload_Enable);
-
-    TIM_OC2Init(TIM1, &TIM_OCInitStructure);
-    TIM_OC2PreloadConfig(TIM1, TIM_OCPreload_Enable);
-
-    TIM_OC3Init(TIM1, &TIM_OCInitStructure);
-    TIM_OC3PreloadConfig(TIM1, TIM_OCPreload_Enable);
-
-    TIM_OC4Init(TIM1, &TIM_OCInitStructure);
-    TIM_OC4PreloadConfig(TIM1, TIM_OCPreload_Enable);
-
-    TIM_ARRPreloadConfig(TIM1, ENABLE);
-
-    // 高级定时器还需要使能主输出
-    TIM_CtrlPWMOutputs(TIM1, ENABLE);
-
-    // 显式打开4个通道输出，避免寄存器状态受其它初始化影响
-    // TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
-    // TIM_CCxCmd(TIM1, TIM_Channel_2, TIM_CCx_Enable);
-    // TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
-    // TIM_CCxCmd(TIM1, TIM_Channel_4, TIM_CCx_Enable);
-
-    TIM_Cmd(TIM1, ENABLE);
+    packet = (uint16_t)(((throttle & 0x07FFU) << 1U) | (telemetry ? 1U : 0U));
+    crc = (uint8_t)((packet ^ (packet >> 4U) ^ (packet >> 8U)) & 0x0FU);
+    return (uint16_t)((packet << 4U) | crc);
 }
-*/
 
-// 寄存器方式: TIM1四通道PWM初始化
-/*
-void TIM1_PWM_Init_Reg(u32 arr, u32 psc)
+// TIM1_UP事件触发的DMA初始化, 用于自动更新TIM1的CCR寄存器发送DShot命令
+static void TIM1_DShot_DMA_Init(void)
 {
-    // 1) 打开时钟: TIM1在APB2, GPIOE在AHB1
-    RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
-    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOEEN;
+    RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
 
-    // 2) PE9/11/13/14 复用为TIM1_CH1/2/3/4
-    // MODER: 10=复用功能
-    GPIOE->MODER &= ~((3U << (9U * 2U)) |
-                      (3U << (11U * 2U)) |
-                      (3U << (13U * 2U)) |
-                      (3U << (14U * 2U)));
-    GPIOE->MODER |=  ((2U << (9U * 2U)) |
-                      (2U << (11U * 2U)) |
-                      (2U << (13U * 2U)) |
-                      (2U << (14U * 2U)));
+    if ((DSHOT_DMA_STREAM->CR & DMA_SxCR_EN) != 0U)
+    {
+        DSHOT_DMA_STREAM->CR &= ~DMA_SxCR_EN;
+        while ((DSHOT_DMA_STREAM->CR & DMA_SxCR_EN) != 0U)
+        {
+        }
+    }
 
-    // 推挽输出, 高速, 上拉
-    GPIOE->OTYPER &= ~((1U << 9U) | (1U << 11U) | (1U << 13U) | (1U << 14U));
+    DMA2->HIFCR = DSHOT_DMA_CLEAR_MASK;
 
-    GPIOE->OSPEEDR &= ~((3U << (9U * 2U)) |
-                        (3U << (11U * 2U)) |
-                        (3U << (13U * 2U)) |
-                        (3U << (14U * 2U)));
-    GPIOE->OSPEEDR |=  ((3U << (9U * 2U)) |
-                        (3U << (11U * 2U)) |
-                        (3U << (13U * 2U)) |
-                        (3U << (14U * 2U)));
+    DSHOT_DMA_STREAM->CR = 0U;
+    DSHOT_DMA_STREAM->CR = (6U << 25U) | // CHSEL=6 -> TIM1_UP
+                           DMA_SxCR_DIR_0 | // Memory-to-peripheral
+                           DMA_SxCR_MINC |
+                           DMA_SxCR_PSIZE_0 | // 16-bit peripheral
+                           DMA_SxCR_MSIZE_0 | // 16-bit memory
+                           DMA_SxCR_PL_1; // high priority
 
-    GPIOE->PUPDR &= ~((3U << (9U * 2U)) |
-                      (3U << (11U * 2U)) |
-                      (3U << (13U * 2U)) |
-                      (3U << (14U * 2U)));
-    GPIOE->PUPDR |=  ((1U << (9U * 2U)) |
-                      (1U << (11U * 2U)) |
-                      (1U << (13U * 2U)) |
-                      (1U << (14U * 2U)));
+    DSHOT_DMA_STREAM->NDTR = DSHOT_FRAME_BUF_LEN * 4U;
+    DSHOT_DMA_STREAM->PAR = (uint32_t)&(TIM1->DMAR);
+    DSHOT_DMA_STREAM->M0AR = (uint32_t)g_dshot_cmd;
+    DSHOT_DMA_STREAM->FCR = 0U;
 
-    // AFR[1]中配置AF1(TIM1): pin9/11/13/14
-    GPIOE->AFR[1] &= ~((0xFU << ((9U - 8U) * 4U)) |
-                       (0xFU << ((11U - 8U) * 4U)) |
-                       (0xFU << ((13U - 8U) * 4U)) |
-                       (0xFU << ((14U - 8U) * 4U)));
-    GPIOE->AFR[1] |=  ((0x1U << ((9U - 8U) * 4U)) |
-                       (0x1U << ((11U - 8U) * 4U)) |
-                       (0x1U << ((13U - 8U) * 4U)) |
-                       (0x1U << ((14U - 8U) * 4U)));
+    // Update事件触发DMA burst, 每次更新CCR1~CCR4四个通道
+    TIM_DMACmd(TIM1, TIM_DMA_Update, ENABLE);
+    TIM_DMAConfig(TIM1, TIM_DMABase_CCR1, TIM_DMABurstLength_4Transfers);
+}
 
-    // 3) 定时器基准参数: f_pwm = tim_clk / ((PSC+1)*(ARR+1))
-    TIM1->PSC = psc - 1U;
-    TIM1->ARR = arr - 1U;
+// 直接发送4路电机的DShot命令, 通过DMA自动更新TIM1的CCR寄存器
+static void TIM1_DShot_SendFrame(uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4)
+{
+    uint16_t packet1 = DShot_PacketEncode(m1, 0U);
+    uint16_t packet2 = DShot_PacketEncode(m2, 0U);
+    uint16_t packet3 = DShot_PacketEncode(m3, 0U);
+    uint16_t packet4 = DShot_PacketEncode(m4, 0U);
+    uint8_t i;
 
-    // 4) PWM模式1 + 预装载使能
-    // OCxM=110(PWM1), OCxPE=1
-    TIM1->CCMR1 &= ~(TIM_CCMR1_OC1M | TIM_CCMR1_OC2M);
-    TIM1->CCMR1 |=  (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1PE |
-                     TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE);
+    for (i = 0U; i < DSHOT_FRAME_BITS; i++)
+    {
+        g_dshot_cmd[i][0] = ((packet1 >> (15U - i)) & 0x01U) ? DSHOT_BIT_1_TICKS : DSHOT_BIT_0_TICKS;
+        g_dshot_cmd[i][1] = ((packet2 >> (15U - i)) & 0x01U) ? DSHOT_BIT_1_TICKS : DSHOT_BIT_0_TICKS;
+        g_dshot_cmd[i][2] = ((packet3 >> (15U - i)) & 0x01U) ? DSHOT_BIT_1_TICKS : DSHOT_BIT_0_TICKS;
+        g_dshot_cmd[i][3] = ((packet4 >> (15U - i)) & 0x01U) ? DSHOT_BIT_1_TICKS : DSHOT_BIT_0_TICKS;
+    }
 
-    TIM1->CCMR2 &= ~(TIM_CCMR2_OC3M | TIM_CCMR2_OC4M);
-    TIM1->CCMR2 |=  (TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3PE |
-                     TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4PE);
+    // 留出帧尾间隔, 让电调可靠分帧
+    for (i = DSHOT_FRAME_BITS; i < DSHOT_FRAME_BUF_LEN; i++)
+    {
+        g_dshot_cmd[i][0] = 0U;
+        g_dshot_cmd[i][1] = 0U;
+        g_dshot_cmd[i][2] = 0U;
+        g_dshot_cmd[i][3] = 0U;
+    }
 
-    // 5) 打开4路主输出通道
-    TIM1->CCER |= (TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E);
+    if ((DSHOT_DMA_STREAM->CR & DMA_SxCR_EN) != 0U)
+    {
+        DSHOT_DMA_STREAM->CR &= ~DMA_SxCR_EN;
+        while ((DSHOT_DMA_STREAM->CR & DMA_SxCR_EN) != 0U)
+        {
+        }
+    }
 
-    // 初始占空比=0
+    DMA2->HIFCR = DSHOT_DMA_CLEAR_MASK;
+    DSHOT_DMA_STREAM->M0AR = (uint32_t)g_dshot_cmd;
+    DSHOT_DMA_STREAM->NDTR = DSHOT_FRAME_BUF_LEN * 4U;
+    DSHOT_DMA_STREAM->CR |= DMA_SxCR_EN;
+
+    while ((DMA2->HISR & DMA_HISR_TCIF5) == 0U)
+    {
+    }
+
+    DSHOT_DMA_STREAM->CR &= ~DMA_SxCR_EN;
+    while ((DSHOT_DMA_STREAM->CR & DMA_SxCR_EN) != 0U)
+    {
+    }
+    DMA2->HIFCR = DSHOT_DMA_CLEAR_MASK;
+
+    // 帧完成后拉低输出, 防止保持上一次占空比
     TIM1->CCR1 = 0U;
     TIM1->CCR2 = 0U;
     TIM1->CCR3 = 0U;
     TIM1->CCR4 = 0U;
-
-    // 6) 高级定时器必须置位MOE，否则不会从引脚输出
-    TIM1->BDTR |= TIM_BDTR_MOE;
-
-    // 7) 使能ARR预装载，产生一次更新事件，把预装载值同步到影子寄存器
-    TIM1->CR1 |= TIM_CR1_ARPE;
     TIM1->EGR |= TIM_EGR_UG;
-
-    // 8) 启动计数器
-    TIM1->CR1 |= TIM_CR1_CEN;
 }
-*/
 
-// 寄存器+GPIO封装方式: TIM1四通道PWM初始化
+// IM1四通道 DShot300 PWM 初始化
 void TIM1_PWM_Init(u32 arr, u32 psc)
 {
-    // 1) 开时钟
+    // 1) 开时钟: TIM1 在 APB2, GPIOE 在 AHB1
     RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOEEN;
 
-    // 2) 通过通用GPIO封装配置PE9/11/13/14
+    // 2) 配置 PE9/PE11/PE13/PE14 为 TIM1_CH1/2/3/4 复用输出
+    //    DShot300 需要稳定的高速方波, 因此使用复用功能、推挽输出、上拉和高速驱动
     GPIO_Set_Reg(GPIOE,
                  (uint16_t)((1U << 9U) | (1U << 11U) | (1U << 13U) | (1U << 14U)),
                  REG_GPIO_MODE_AF,
@@ -172,54 +141,95 @@ void TIM1_PWM_Init(u32 arr, u32 psc)
     GPIO_AF_Set_Reg(GPIOE, 13U, 1U);
     GPIO_AF_Set_Reg(GPIOE, 14U, 1U);
 
-    // 3) 定时器基准频率: f = tim_clk / ((PSC+1)*(ARR+1))
+    // 3) 配置 TIM1 基准频率:
+    //    f_pwm = 168MHz / ((PSC+1) * (ARR+1))
+    //    传入 arr=560, psc=1 时, 实际输出约为 168MHz / (1 * 560) = 300kHz
+    TIM1->CR1 &= ~TIM_CR1_CEN;
     TIM1->PSC = psc - 1U;
     TIM1->ARR = arr - 1U;
 
-    // 4) PWM1 + CCR预装载(4通道)
-    TIM1->CCMR1 &= ~(TIM_CCMR1_OC1M | TIM_CCMR1_OC2M);
-    TIM1->CCMR1 |= (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1PE |
-                    TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE);
+    // 4) PWM 模式 1 + CCR 预装载(4 通道)
+    //    OCxM = 110 表示 PWM1, OCxPE = 1 使能比较寄存器预装载
+    TIM1->CCMR1 &= ~(TIM_CCMR1_CC1S | TIM_CCMR1_OC1M | TIM_CCMR1_OC1PE |
+                     TIM_CCMR1_CC2S | TIM_CCMR1_OC2M | TIM_CCMR1_OC2PE);
+    TIM1->CCMR1 |=  (TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1PE |
+                     TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2PE);
 
-    TIM1->CCMR2 &= ~(TIM_CCMR2_OC3M | TIM_CCMR2_OC4M);
-    TIM1->CCMR2 |= (TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3PE |
-                    TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4PE);
+    TIM1->CCMR2 &= ~(TIM_CCMR2_CC3S | TIM_CCMR2_OC3M | TIM_CCMR2_OC3PE |
+                     TIM_CCMR2_CC4S | TIM_CCMR2_OC4M | TIM_CCMR2_OC4PE);
+    TIM1->CCMR2 |=  (TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3PE |
+                     TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4PE);
 
-    // 5) 打开4个输出通道
+    // 5) 打开 4 个输出通道, 极性配置为高电平有效
+    TIM1->CCER &= ~(TIM_CCER_CC1P | TIM_CCER_CC2P | TIM_CCER_CC3P | TIM_CCER_CC4P);
     TIM1->CCER |= (TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E);
 
-    // 6) 初始占空比为0
+    // 6) 初始占空比为 0, 避免上电瞬间误触发电调
     TIM1->CCR1 = 0U;
     TIM1->CCR2 = 0U;
     TIM1->CCR3 = 0U;
     TIM1->CCR4 = 0U;
 
-    // 7) 高级定时器需要MOE
+    // 7) 高级定时器 TIM1 需要 MOE 才会真正从引脚输出
     TIM1->BDTR |= TIM_BDTR_MOE;
 
-    // 8) 预装载生效并启动
+    // 8) 使能 ARR 预装载并触发一次更新事件, 将预装载值同步到影子寄存器
     TIM1->CR1 |= TIM_CR1_ARPE;
     TIM1->EGR |= TIM_EGR_UG;
+
+    // 9) 启动计数器, 此时 TIM1 输出 DShot300 所需的 300kHz PWM 基波
     TIM1->CR1 |= TIM_CR1_CEN;
+
+    // 10) 初始化DMA, 后续通过DMA burst把DShot位流装载到CCR1~CCR4
+    TIM1_DShot_DMA_Init();
 }
 
-// 设置CCR- 占空比Duty = CCR / (ARR + 1)
-void MOS1_Control(uint16_t duty)
+// 将输入的油门值限制在 DShot 协议允许的范围内, 并转换为整数
+void TIM1_DShot_Write(uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4)
 {
-    TIM1->CCR1 = duty;
-}
+    g_dshot_throttle[0] = m3; //3
+    g_dshot_throttle[1] = m1; //1
+    g_dshot_throttle[2] = m2; //2
+    g_dshot_throttle[3] = m4; //4
 
-void MOS2_Control(uint16_t duty)
-{
-    TIM1->CCR2 = duty;
+    TIM1_DShot_SendFrame(g_dshot_throttle[0],
+                         g_dshot_throttle[1],
+                         g_dshot_throttle[2],
+                         g_dshot_throttle[3]);
 }
 
 void MOS3_Control(uint16_t duty)
 {
-    TIM1->CCR3 = duty;
+    g_dshot_throttle[2] = duty;
+    TIM1_DShot_SendFrame(g_dshot_throttle[0],
+                         g_dshot_throttle[1],
+                         g_dshot_throttle[2],
+                         g_dshot_throttle[3]);
+}
+
+void MOS1_Control(uint16_t duty)
+{
+    g_dshot_throttle[0] = duty;
+    TIM1_DShot_SendFrame(g_dshot_throttle[0],
+                         g_dshot_throttle[1],
+                         g_dshot_throttle[2],
+                         g_dshot_throttle[3]);
+}
+
+void MOS2_Control(uint16_t duty)
+{
+    g_dshot_throttle[1] = duty;
+    TIM1_DShot_SendFrame(g_dshot_throttle[0],
+                         g_dshot_throttle[1],
+                         g_dshot_throttle[2],
+                         g_dshot_throttle[3]);
 }
 
 void MOS4_Control(uint16_t duty)
 {
-    TIM1->CCR4 = duty;
+    g_dshot_throttle[3] = duty;
+    TIM1_DShot_SendFrame(g_dshot_throttle[0],
+                         g_dshot_throttle[1],
+                         g_dshot_throttle[2],
+                         g_dshot_throttle[3]);
 }

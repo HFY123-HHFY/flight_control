@@ -720,7 +720,11 @@ void NRF24L01_Data(void)
 			if (ID == 0x01)
 			{
 				NRF24L01_TxPacket[0] = 0x02; // 回传数据包ID
-				// 这里空出了4个字节，预留
+				// 回传基础油门 speed_temp (uint16_t, 低字节在前)
+				NRF24L01_TxPacket[1] = (uint8_t)(speed_temp & 0xFFU);
+				NRF24L01_TxPacket[2] = (uint8_t)((speed_temp >> 8) & 0xFFU);
+
+				//4~23 字节放姿态数据
 				*(float *)&NRF24L01_TxPacket[4] = Pitch; // 占用4，5，6，7
 				*(float *)&NRF24L01_TxPacket[8] = Roll; // 占用8，9，10，11
 				*(float *)&NRF24L01_TxPacket[12] = Yaw; // 占用12，13，14，15
@@ -732,8 +736,9 @@ void NRF24L01_Data(void)
 			//得到遥控器的键值
 			Key = NRF24L01_RxPacket[1];
 
-			/* 遥控器0~250映射到PWM占空比0~PWM_DUTY_MAX */
-			uint16_t rx_duty = (uint16_t)(((uint32_t)NRF24L01_RxPacket[2] * PWM_DUTY_MAX) / 250U);
+			/* 遥控器0~250映射到DShot油门48~PWM_DUTY_MAX(2047) */
+			uint16_t rx_duty = (uint16_t)(DSHOT_THROTTLE_MIN +
+				(((uint32_t)NRF24L01_RxPacket[2] * (PWM_DUTY_MAX - DSHOT_THROTTLE_MIN)) / 250U));
 			// int8_t R_H = NRF24L01_RxPacket[3];
 			// int8_t R_Z = NRF24L01_RxPacket[4];
 			// int8_t L_H = NRF24L01_RxPacket[5];

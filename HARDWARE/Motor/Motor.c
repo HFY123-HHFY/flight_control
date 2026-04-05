@@ -2,57 +2,43 @@
 
 uint16_t speed_temp = 0;
 
-static uint16_t Motor_ClampDuty(float duty)
+static uint16_t Motor_DShotClamp(float val)
 {
-    if (duty <= 0.0f)
+    if (val <= 0.0f)
     {
-        return 0;
+        return 0U;
     }
-    if (duty >= (float)PWM_DUTY_MAX)
+    if (val < (float)DSHOT_THROTTLE_MIN)
     {
-        return PWM_DUTY_MAX;
+        return DSHOT_THROTTLE_MIN;
     }
-    return (uint16_t)duty;
-}
-
-//电机测试函数
-void Motor_Control(int mosX, float duty)
-{
-    uint16_t pwm = Motor_ClampDuty(duty);
-
-    switch(mosX)
+    if (val > (float)DSHOT_THROTTLE_MAX)
     {
-        case 1:
-            MOS2_Control(pwm); 
-            break;
-        case 2:
-            MOS3_Control(pwm);
-            break;
-        case 3:
-            MOS1_Control(pwm);
-            break;
-        case 4:
-            MOS4_Control(pwm);
-            break;
-        default:
-            break;
+        return DSHOT_THROTTLE_MAX;
     }
+    return (uint16_t)val;
 }
 
 void Motor_Test(void)
 {
     if (Key == 1)
     {
+        uint16_t m1;
+        uint16_t m2;
+        uint16_t m3;
+        uint16_t m4;
+
         /* 
             电机1: 基础 + Pitch调节 + Roll调节
             电机2: 基础 - Pitch调节 + Roll调节
             电机3: 基础 + Pitch调节 - Roll调节
             电机4: 基础 - Pitch调节 - Roll调节
         */
-        Motor_Control(1, speed_temp + pid_pitch.output + pid_roll.output);
-        Motor_Control(2, speed_temp - pid_pitch.output + pid_roll.output);
-        Motor_Control(3, speed_temp + pid_pitch.output - pid_roll.output);
-        Motor_Control(4, speed_temp - pid_pitch.output - pid_roll.output);
+        m1 = Motor_DShotClamp((float)speed_temp + pid_pitch.output + pid_roll.output);
+        m2 = Motor_DShotClamp((float)speed_temp - pid_pitch.output + pid_roll.output);
+        m3 = Motor_DShotClamp((float)speed_temp + pid_pitch.output - pid_roll.output);
+        m4 = Motor_DShotClamp((float)speed_temp - pid_pitch.output - pid_roll.output);
+        TIM1_DShot_Write(m1, m2, m3, m4);
     }
     else if (Key == 2)
     {
@@ -64,17 +50,11 @@ void Motor_Test(void)
         {
             speed_temp = 0;
         }
-        Motor_Control(1, speed_temp);
-        Motor_Control(2, speed_temp);
-        Motor_Control(3, speed_temp);
-        Motor_Control(4, speed_temp);
+        TIM1_DShot_Write(speed_temp, speed_temp, speed_temp, speed_temp);
     }
     else if (Key == 3)
     {
         speed_temp = 0;
-        Motor_Control(1, 0);
-        Motor_Control(2, 0);
-        Motor_Control(3, 0);
-        Motor_Control(4, 0);
+        TIM1_DShot_Write(0, 0, 0, 0);
     }
 }

@@ -22,22 +22,22 @@ void Bsp_Init(void)
 
   NRF24L01_Init(); // 初始化NRF24L01
 
-  My_CAN_Init(); // 初始化CAN总线
+  // My_CAN_Init(); // 初始化CAN总线
 	
-	QMC_Init();
+	// QMC_Init();
 	// QMC_EXTI_Init();
 	
   // ControlTask_FusionInit(); // 卡尔曼滤波器初始化
 
-  BMP280Init();
+  // BMP280Init();
 
   MPU_Init(); // 初始化MPU6050
   mpu_dmp_init(); // 初始化MPU6050 DMP
   MPU6050_EXTI_Init(); // 初始化MPU6050外部中断
 
-  //光流模块初始化
-	Opf_LC307_Init();
-	Opf_LC307_Start();
+  // //光流模块初始化
+	// Opf_LC307_Init();
+	// Opf_LC307_Start();
 
   TIM1_PWM_Init(PWM_TEST_ARR, PWM_TEST_PSC);
 
