@@ -17,10 +17,10 @@ MPU6050:
 */
 		mpu_angle(); // 读取MPU6050数据
 		PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
-		Set_PID(&pid_roll, 12.0f, 0.00f, 0.0f); // 设置Roll外环PID参数
-		Set_PID(&pid_rate_roll, 6.0f, 0.00f, 0.0f); // 设置Roll内环PID参数
-		Set_PID(&pid_pitch, 12.0f, 0.00f, 0.0f); // 设置Pitch外环PID参数
-		Set_PID(&pid_rate_pitch, 6.0f, 0.00f, 0.0f); // 设置Pitch内环PID参数
+		Set_PID(&pid_roll, 85.0f, 0.00f, 0.0f); // 设置Roll外环PID参数
+		Set_PID(&pid_rate_roll, 4.2f, 0.00f, 0.0f); // 设置Roll内环PID参数
+		Set_PID(&pid_pitch, 85.0f, 0.00f, 0.0f); // 设置Pitch外环PID参数
+		Set_PID(&pid_rate_pitch, 4.2f, 0.00f, 0.0f); // 设置Pitch内环PID参数
 		// usart_printf(USART3, "pitch_output: %.1f,    roll.output: %.1f\r\n", pid_pitch.output, pid_roll.output);
 
 /*
@@ -52,6 +52,7 @@ printf节拍调试-100ms:
 		if (print_task_flag)
 		{
 			print_task_flag = 0;
+			// printf("Timer_Bsp_t:%d\r\n",Timer_Bsp_t);
 			// usart_printf(USART3,"LC307 Vx:%.3f Vy:%.3f Px:%.3f Py:%.3f Lost:%d\r\n",
 			// g_lc307_speed_x,g_lc307_speed_y,g_lc307_pos_x,g_lc307_pos_y,g_lost_pos_dev);
 		}

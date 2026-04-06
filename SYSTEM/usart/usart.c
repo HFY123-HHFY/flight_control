@@ -1,21 +1,32 @@
 #include "usart.h"
 
-//加入以下代码,支持printf函数,而不需要选择use MicroLIB
-#if 1
-#pragma import(__use_no_semihosting)             
-//标准库需要的支持函数                 
-struct __FILE 
-{ 
-	int handle; 
-}; 
+#if defined(__CC_ARM) || defined(__ARMCC_VERSION)
+// Keil/ARMCC 下关闭半主机输出
+#pragma import(__use_no_semihosting)
+struct __FILE
+{
+    int handle;
+};
 
-FILE __stdout;       
-//定义_sys_exit()以避免使用半主机模式    
-void _sys_exit(int x) 
-{ 
-	x = x; 
+FILE __stdout;
+
+void _sys_exit(int x)
+{
+    (void)x;
 }
-#endif 
+#elif defined(__GNUC__)
+int _write(int file, char *ptr, int len)
+{
+    int index;
+
+    (void)file;
+    for (index = 0; index < len; index++)
+    {
+        usart_send_byte(USART2, (uint8_t)ptr[index]);
+    }
+    return len;
+}
+#endif
 
 /*或者
 //重定义fputc函数 
@@ -76,7 +87,7 @@ void usart_send_array(USART_TypeDef* USARTx, uint8_t *Array, uint16_t Length)
 // 重定向 C 库函数 printf 到串口
 int fputc(int ch, FILE *f)
 {
-    usart_send_byte(USART2, (uint8_t) ch); // 这里假设使用 USART2
+    usart_send_byte(USART3, (uint8_t) ch); // 这里使用 USART3
     return ch;
 }
 

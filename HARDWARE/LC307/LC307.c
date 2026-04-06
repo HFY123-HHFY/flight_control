@@ -1,5 +1,13 @@
 #include "LC307.h"
 
+#ifndef __weak
+#if defined(__GNUC__)
+#define __weak __attribute__((weak))
+#else
+#define __weak
+#endif
+#endif
+
 // 光流模块丢失位置设备标志位，0表示正常，1表示丢失
 uint8_t g_lost_pos_dev = 0;
 

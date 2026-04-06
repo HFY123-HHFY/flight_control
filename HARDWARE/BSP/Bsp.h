@@ -13,6 +13,7 @@
 #include "adc.h"
 
 #include "led.h"
+#include "Buzzer.h"
 #include "key.h"
 #include "OLED.h"
 

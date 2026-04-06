@@ -42,4 +42,5 @@ void Bsp_Init(void)
   TIM1_PWM_Init(PWM_TEST_ARR, PWM_TEST_PSC);
 
   PID_Contorl_Init(); // PID控制初始化
+  Buzzer_Init(); // 蜂鸣器初始化
 }

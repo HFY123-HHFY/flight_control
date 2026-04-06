@@ -4,6 +4,86 @@
 	正点原子
 */
 
+#if defined(__GNUC__)
+
+void WFI_SET(void)
+{
+    __ASM volatile ("wfi");
+}
+
+void INTX_DISABLE(void)
+{
+    __ASM volatile ("cpsid i");
+}
+
+void INTX_ENABLE(void)
+{
+    __ASM volatile ("cpsie i");
+}
+
+void MSR_MSP(u32 addr)
+{
+    __ASM volatile ("msr msp, %0" : : "r" (addr) : );
+}
+
+// 设置单个GPIO引脚复用功能(AF0~AF15)
+// GPIOx: GPIOA~GPIOI
+// pin: 0~15
+// af: 0~15, 对应AF0~AF15
+void GPIO_AF_Set_Reg(GPIO_TypeDef* GPIOx, uint8_t pin, uint8_t af)
+{
+    uint32_t idx = (uint32_t)pin >> 3U;          // 0: AFRL(0~7), 1: AFRH(8~15)
+    uint32_t shift = ((uint32_t)pin & 0x7U) * 4U;
+
+    GPIOx->AFR[idx] &= ~(0xFU << shift);
+    GPIOx->AFR[idx] |= ((uint32_t)af << shift);
+}
+
+// 按位批量配置GPIO模式/输出类型/速度/上下拉
+// GPIOx: GPIOA~GPIOI
+// pinMask: 位设置，每一位对应一个IO
+// mode: 0~3, 模式选择, 0:输入, 1:通用输出, 2:复用功能(AF), 3:模拟输入
+// otype: 0/1, 输出类型, 0:推挽输出, 1:开漏输出
+// ospeed: 0~3, 输入设置，0:低速(2MHz), 1:中速(25MHz), 2:快速(50MHz), 3:高速(100MHz)
+// pupd: 0~2, 上下拉设置, 0:无上下拉, 1:上拉, 2:下拉
+void GPIO_Set_Reg(GPIO_TypeDef* GPIOx,
+                  uint16_t pinMask,
+                  uint32_t mode,
+                  uint32_t otype,
+                  uint32_t ospeed,
+                  uint32_t pupd)
+{
+    uint32_t pin = 0U;
+
+    for (pin = 0U; pin < 16U; pin++)
+    {
+        uint32_t bit = 1U << pin;
+        if ((pinMask & bit) == 0U)
+        {
+            continue;
+        }
+
+        // MODER: 每个引脚2位
+        GPIOx->MODER &= ~(3U << (pin * 2U));
+        GPIOx->MODER |= (mode << (pin * 2U));
+
+        // 输出或复用模式下, OSPEEDR/OTYPER有效
+        if ((mode == REG_GPIO_MODE_OUTPUT) || (mode == REG_GPIO_MODE_AF))
+        {
+            GPIOx->OSPEEDR &= ~(3U << (pin * 2U));
+            GPIOx->OSPEEDR |= (ospeed << (pin * 2U));
+
+            GPIOx->OTYPER &= ~(1U << pin);
+            GPIOx->OTYPER |= (otype << pin);
+        }
+
+        GPIOx->PUPDR &= ~(3U << (pin * 2U));
+        GPIOx->PUPDR |= (pupd << (pin * 2U));
+    }
+}
+
+#else
+
 // 设置单个GPIO引脚复用功能(AF0~AF15)
 // GPIOx: GPIOA~GPIOI
 // pin: 0~15
@@ -83,3 +163,5 @@ __asm void MSR_MSP(u32 addr)
 	MSR MSP, r0 			//set Main Stack value
 	BX r14
 }
+
+#endif
