@@ -43,5 +43,6 @@ void Motor_Test(void)
     else if (Key == 2)
     {
         speed_temp = 0;
+        TIM1_DShot_Write(speed_temp, speed_temp, speed_temp, speed_temp);
     }
 }
