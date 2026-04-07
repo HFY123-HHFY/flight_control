@@ -251,14 +251,17 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         roll_out  = Limit_Output(PID_Calc(&pid_rate_roll, gyro_roll_dps), Motor_out_max);
         
         //串级PID最终输出
-        pid_pitch.output = pitch_out; // Motor_Test使用pid_pitch.output/pid_roll.output
-        pid_roll.output = roll_out; // 更新 PID 输出到结构体
+        pid_pitch.output = pitch_out;
+        pid_roll.output = roll_out;
 				
          //加载输出到电机上
         Motor_Test();
-        
-        // usart_printf(USART3,"%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.Target,Pitch,pid_rate_pitch.Target,gyro_pitch_dps,pitch_out);
-        // usart_printf(USART3,"%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_roll.Target,Roll,pid_rate_roll.Target,gyro_roll_dps,roll_out);
+
+        // if (print_task_flag)
+		// {
+		// 	print_task_flag = 0;
+		// 	printf("%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.Target, Pitch, pid_rate_pitch.Target,gyro_pitch_dps,pid_pitch.output);
+		// }
     }
 }
 

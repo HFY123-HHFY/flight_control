@@ -5,6 +5,7 @@
 #include "usart.h"
 #include "Motor.h"
 #include "Bsp.h"
+#include "NVIC_IRQ.h"
 
 void usart_3_Init(u32 bound_3);
 void USART3_Data(void); // 串口3调试PID参数

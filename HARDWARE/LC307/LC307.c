@@ -1,13 +1,5 @@
 #include "LC307.h"
 
-#ifndef __weak
-#if defined(__GNUC__)
-#define __weak __attribute__((weak))
-#else
-#define __weak
-#endif
-#endif
-
 // 光流模块丢失位置设备标志位，0表示正常，1表示丢失
 uint8_t g_lost_pos_dev = 0;
 
@@ -409,6 +401,12 @@ uint8_t Opf_LC307_Init(void)
 
 void USART1_IRQHandler(void)
 {
+	if (USART_GetITStatus(USART1, USART_IT_TXE) == SET)
+	{
+		// USART1复用通用发送队列: TXE触发时从队列取1字节发送
+		usart_tx_irq_handler(USART1);
+	}
+
 	// USART1 空闲中断：表示一帧串口数据接收完成
 	if (USART_GetFlagStatus(USART1, USART_FLAG_IDLE) != RESET) 
     {

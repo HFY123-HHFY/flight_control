@@ -715,7 +715,7 @@ void NRF24L01_Data(void)
 	{
 		uint8_t ID = NRF24L01_RxPacket[0];
 
-		if (ID == 0x00 || ID == 0x01)
+//////////////////////\		if (ID == 0x00 || ID == 0x01)
 		{
 			if (ID == 0x01)
 			{
@@ -728,8 +728,8 @@ void NRF24L01_Data(void)
 				*(float *)&NRF24L01_TxPacket[4] = Pitch; // 占用4，5，6，7
 				*(float *)&NRF24L01_TxPacket[8] = Roll; // 占用8，9，10，11
 				*(float *)&NRF24L01_TxPacket[12] = Yaw; // 占用12，13，14，15
-				*(float *)&NRF24L01_TxPacket[16] = Angle_XY; // 占用16，17，18，19
-				*(float *)&NRF24L01_TxPacket[20] = alt; // 占用20，21，22，23
+				*(float *)&NRF24L01_TxPacket[16] = pid_pitch.output; // 占用16，17，18，19
+				*(float *)&NRF24L01_TxPacket[20] = pid_roll.output; // 占用20，21，22，23
 				SendFlag = NRF24L01_Send(); // 发送数据包，并获取发送状态
 			}
 			
@@ -742,6 +742,8 @@ void NRF24L01_Data(void)
 			// int8_t R_H = NRF24L01_RxPacket[3];
 			// int8_t R_Z = NRF24L01_RxPacket[4];
 			// int8_t L_H = NRF24L01_RxPacket[5];
+
+			speed_temp = rx_duty; //把油门给到PWM占空比
 
 			if (Key == 1) //解锁基础油门
 			{

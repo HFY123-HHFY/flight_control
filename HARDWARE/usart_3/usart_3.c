@@ -51,14 +51,20 @@ void USART3_IRQHandler(void)
 	{
 		USART_3_RX = USART_ReceiveData(USART3); // 读取接收到的数据
 		uart3_flag = 1; // 设置串口3接收标志位
+		USART_ClearITPendingBit(USART3, USART_IT_RXNE); // 清除中断标志位
 	}
-	USART_ClearITPendingBit(USART3, USART_IT_RXNE);
+
+	if(USART_GetITStatus(USART3, USART_IT_TXE) == SET)
+	{
+		// 发送寄存器空: 交给通用异步发送处理函数继续从队列出队发送
+		usart_tx_irq_handler(USART3);
+	}
 }
 
 void USART3_Data(void)
 {
-	static float kp = 0.0f, ki = 0.0f, kd = 0.0f;// 外环PID参数
-	static float rate_kp = 0.0f, rate_ki = 0.0f, rate_kd = 0.0f; // 内环PID参数
+	static float kp = 1.5f, ki = 0.0f, kd = 0.0f;// 外环PID参数
+	static float rate_kp = 0.7f, rate_ki = 0.0f, rate_kd = 0.0f; // 内环PID参数
 
 	if (uart3_flag == 1)
 	{
@@ -69,11 +75,11 @@ void USART3_Data(void)
 	内环PID参数调整：
 	*/
 			case 'a':	
-				rate_kp += 1.0f;	
+				rate_kp += 0.1f;	
 			break;
 			
 			case 'b':	
-			rate_kp -= 1.0f;
+			rate_kp -= 0.1f;
 			if (rate_kp < 0.0f)
 			{
 				rate_kp = 0.0f;
@@ -81,11 +87,11 @@ void USART3_Data(void)
 			break;
 
 			case 'c':	
-				rate_ki += 0.002f;	
+				rate_ki += 0.01f;
 			break;
 				
 			case 'd':
-				rate_ki -= 0.002f;
+				rate_ki -= 0.01f;
 				if (rate_ki < 0.0f)
 				{
 					rate_ki = 0.0f;
@@ -93,11 +99,11 @@ void USART3_Data(void)
 			break;
 
 			case 'e':	
-				rate_kd += 0.1f;	
+				rate_kd += 0.01f;	
 			break;
 				
 			case 'f':	
-				rate_kd -= 0.1f;
+				rate_kd -= 0.01f;
 				if (rate_kd < 0.0f)
 				{
 					rate_kd = 0.0f;
@@ -108,50 +114,20 @@ void USART3_Data(void)
 	外环PID参数调整：
 	*/
 			case 'g':	
-				kp += 1.0f;	
-			break;
-			
-			case 'h':	
-				kp -= 1.0f;
-				if (kp < 0.0f)
-				{
-					kp = 0.0f;
-				}
-			break;
-
-			case 'i':	
-				ki += 0.002f;	
-			break;
-				
-			case 'j':
-				ki -= 0.002f;
-				if (ki < 0.0f)
-				{
-					ki = 0.0f;
-				}
-				break;
-
-			case 'k':	
-				kd += 0.1f;	
-			break;
-				
-			case 'l':	
-				kd -= 0.1f;
-				if (kd < 0.0f)
-				{
-					kd = 0.0f;
-				}
+				kp += 0.2f;	
 			break;
 
 			default:
 				break;
 		}
 		// 更新PID参数
-		Set_PID(&pid_rate_roll, rate_kp, rate_ki, rate_kd); // 设置Roll内环PID参数
-		Set_PID(&pid_rate_pitch, rate_kp, rate_ki, rate_kd); // 设置Pitch内环PID参数
-
-		Set_PID(&pid_roll, kp, ki, kd); // 设置Roll外环PID参数
 		Set_PID(&pid_pitch, kp, ki, kd); // 设置Pitch外环PID参数
+		Set_PID(&pid_rate_pitch, rate_kp, rate_ki, rate_kd); // 设置Pitch内环PID参数
 	}
-	// usart_printf(USART3,"Target:%.1f,     pitch:%.1f,      rate_kp:%.1f,      kp:%.1f,     out:%.1f\n",pid_pitch.Target, Pitch, pid_rate_pitch.kp, pid_pitch.kp, pid_pitch.output);
+
+	if (print_task_flag)
+	{
+		print_task_flag = 0;
+		// printf("Pitch: %.1f, kp: %.1f, rate_kp: %.1f, rate_kp:: %.2f, rate_kd:%.2f, out:%.1f\n",Pitch, pid_pitch.kp, pid_rate_pitch.kp, pid_rate_pitch.ki, pid_rate_pitch.kd, pid_pitch.output);
+	}
 }

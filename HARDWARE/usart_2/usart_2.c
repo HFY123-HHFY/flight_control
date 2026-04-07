@@ -1,4 +1,5 @@
 #include "usart_2.h"  
+#include "usart.h"
 
 uint32_t USART_2_RX = 0;
 
@@ -50,7 +51,11 @@ void USART2_IRQHandler(void)
 	if(USART_GetITStatus(USART2, USART_IT_RXNE) == SET) 
 	{
 		USART_2_RX = USART_ReceiveData(USART2); // 读取接收到的数据
-		
+		USART_ClearITPendingBit(USART2, USART_IT_RXNE); // 清除中断标志位
 	}
-	USART_ClearITPendingBit(USART2, USART_IT_RXNE);
+
+	if(USART_GetITStatus(USART2, USART_IT_TXE) == SET)
+	{
+		usart_tx_irq_handler(USART2);
+	}
 }

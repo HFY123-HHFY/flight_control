@@ -42,19 +42,6 @@ void Motor_Test(void)
     }
     else if (Key == 2)
     {
-        if (speed_temp > 20)
-        {
-            speed_temp -= 5;
-        }
-        else
-        {
-            speed_temp = 0;
-        }
-        TIM1_DShot_Write(speed_temp, speed_temp, speed_temp, speed_temp);
-    }
-    else if (Key == 3)
-    {
         speed_temp = 0;
-        TIM1_DShot_Write(0, 0, 0, 0);
     }
 }

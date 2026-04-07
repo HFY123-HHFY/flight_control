@@ -7,13 +7,15 @@ void Bsp_Init(void)
   delay_Init(168);
   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//设置系统中断优先级分组2
   TIM3_4_Init(1000,84); // 定时器3和4初始化，1ms中断一次
-  
+
   LED_Init();
   // Key_Init();
 	Adc_Init();
 	
-  usart_2_Init(9600); // 板载调试
+  // usart_2_Init(9600); // 板载调试
   usart_3_Init(115200); // 无线串口调试
+
+  TIM1_PWM_Init(PWM_TEST_ARR, PWM_TEST_PSC);
 
   MyI2C_Init();
   delay_us(10);
@@ -38,8 +40,6 @@ void Bsp_Init(void)
   // //光流模块初始化
 	// Opf_LC307_Init();
 	// Opf_LC307_Start();
-
-  TIM1_PWM_Init(PWM_TEST_ARR, PWM_TEST_PSC);
 
   PID_Contorl_Init(); // PID控制初始化
   Buzzer_Init(); // 蜂鸣器初始化

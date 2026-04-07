@@ -1,4 +1,5 @@
 #include "usart_1.h"  
+#include "usart.h"
 
 uint32_t USART_1_RX = 0;
 
@@ -11,6 +12,7 @@ void usart_1_Init(u32 bound_1)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
 
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB,ENABLE); //使能GPIOB时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);//使能USART1时钟
@@ -32,5 +34,12 @@ void usart_1_Init(u32 bound_1)
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 	USART_Init(USART1, &USART_InitStructure);
+
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_Init(&NVIC_InitStructure);
+
 	USART_Cmd(USART1, ENABLE);                  //使能串口 
 }
