@@ -1,22 +1,5 @@
 #include "Control.h"
 
-static uint16_t DShot_ThrottleClamp(float val)
-{
-    if (val <= 0.0f)
-    {
-        return 0U;
-    }
-    if (val < (float)DSHOT_THROTTLE_MIN)
-    {
-        return DSHOT_THROTTLE_MIN;
-    }
-    if (val > (float)DSHOT_THROTTLE_MAX)
-    {
-        return DSHOT_THROTTLE_MAX;
-    }
-    return (uint16_t)val;
-}
-
 // 1开，0关
 uint8_t pid_flag = 0; // pid 控制标志，1启用，0禁用
 uint8_t pid_enabled = 1; //PID计算标志，1启用，0禁用
@@ -65,7 +48,7 @@ void PID_Init(PID_TypeDef* pid, float kp, float ki, float kd)
     pid->error_sum = 0;
 
     pid->Integral_max = 1000; // 积分最大值
-    pid->Out_max = 200; // 输出最大值
+    pid->Out_max = 2047; // 输出最大值
 }
 
 // 全局PID变量，外环:角度/高度，内环:角速度
@@ -189,10 +172,10 @@ void PID_right_out(void)
         PID_OUT(Pitch, Roll, Yaw, alt);
 
         // 四路混控应一次性下发为一帧，避免后续调用把前面通道覆盖为0
-        m1 = DShot_ThrottleClamp((float)speed_temp + pid_pitch.output + pid_roll.output);
-        m2 = DShot_ThrottleClamp((float)speed_temp - pid_pitch.output + pid_roll.output);
-        m3 = DShot_ThrottleClamp((float)speed_temp + pid_pitch.output - pid_roll.output);
-        m4 = DShot_ThrottleClamp((float)speed_temp - pid_pitch.output - pid_roll.output);
+        m1 = speed_temp + pid_pitch.output + pid_roll.output;
+        m2 = speed_temp - pid_pitch.output + pid_roll.output;
+        m3 = speed_temp + pid_pitch.output - pid_roll.output;
+        m4 = speed_temp - pid_pitch.output - pid_roll.output;
         TIM1_DShot_Write(m1, m2, m3, m4);
     }
     else if (pid_flag == 0)
@@ -237,14 +220,15 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         roll_rate_target = Limit_Output(PID_Calc(&pid_roll, actual_roll), RATE_TARGET_MAX_DPS);
 
         // 内环实际角速度: 由陀螺仪原始值换算为 deg/s
-        gyro_pitch_dps = GyroRawToDps(gyrox, gyro_bias_x);
-        gyro_roll_dps = GyroRawToDps(gyroy, gyro_bias_y);
+        gyro_roll_dps = GyroRawToDps(gyrox, gyro_bias_x);
+        gyro_pitch_dps = GyroRawToDps(gyroy, gyro_bias_y);
 
         // 内环目标角速度 = 外环PID输出
-        pid_rate_pitch.Target = pitch_rate_target;
-        pid_rate_roll.Target = roll_rate_target;
-        // pid_rate_pitch.Target = 0.0f;
-        // pid_rate_roll.Target = -50.0f;
+        // pid_rate_pitch.Target = pitch_rate_target;
+        // pid_rate_roll.Target = roll_rate_target;
+
+        pid_rate_pitch.Target= 0.0f;
+        pid_rate_roll.Target = 0.0f;
 
         // 内环PID输出
         pitch_out = Limit_Output(PID_Calc(&pid_rate_pitch, gyro_pitch_dps), Motor_out_max);

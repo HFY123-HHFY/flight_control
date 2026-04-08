@@ -2,12 +2,9 @@
 
 uint16_t speed_temp = 0;
 
+// 将PID输出和基础油门值转换为DShot油门值，并进行限幅
 static uint16_t Motor_DShotClamp(float val)
 {
-    if (val <= 0.0f)
-    {
-        return 0U;
-    }
     if (val < (float)DSHOT_THROTTLE_MIN)
     {
         return DSHOT_THROTTLE_MIN;
@@ -19,21 +16,38 @@ static uint16_t Motor_DShotClamp(float val)
     return (uint16_t)val;
 }
 
+// 将当前油门值降低到最小值
+static uint16_t Motor_RampDownToMin(uint16_t current, uint16_t step)
+{
+    if (current <= DSHOT_THROTTLE_MIN)
+    {
+        return DSHOT_THROTTLE_MIN;
+    }
+
+    if (current > (uint16_t)(DSHOT_THROTTLE_MIN + step))
+    {
+        return (uint16_t)(current - step);
+    }
+
+    return DSHOT_THROTTLE_MIN;
+}
+
 void Motor_Test(void)
 {
+    static uint16_t m1 = DSHOT_THROTTLE_MIN;
+    static uint16_t m2 = DSHOT_THROTTLE_MIN;
+    static uint16_t m3 = DSHOT_THROTTLE_MIN;
+    static uint16_t m4 = DSHOT_THROTTLE_MIN;
+
     if (Key == 1)
     {
-        uint16_t m1;
-        uint16_t m2;
-        uint16_t m3;
-        uint16_t m4;
-
         /* 
             电机1: 基础 + Pitch调节 + Roll调节
             电机2: 基础 - Pitch调节 + Roll调节
             电机3: 基础 + Pitch调节 - Roll调节
             电机4: 基础 - Pitch调节 - Roll调节
         */
+
         m1 = Motor_DShotClamp((float)speed_temp + pid_pitch.output + pid_roll.output);
         m2 = Motor_DShotClamp((float)speed_temp - pid_pitch.output + pid_roll.output);
         m3 = Motor_DShotClamp((float)speed_temp + pid_pitch.output - pid_roll.output);
@@ -42,7 +56,22 @@ void Motor_Test(void)
     }
     else if (Key == 2)
     {
-        speed_temp = 0;
-        TIM1_DShot_Write(speed_temp, speed_temp, speed_temp, speed_temp);
+        pid_pitch.output = 0;
+        pid_roll.output = 0;
+
+        const uint16_t ramp_step = 4U; // 每次调用降低4个单位的油门，5次调用降低20个单位/秒的下降速率
+        static uint8_t ramp_div = 0U; // 降速计数器
+
+        ramp_div++;
+        if (ramp_div >= 5U)
+        {
+            ramp_div = 0U;
+
+            m1 = Motor_RampDownToMin(m1, ramp_step);
+            m2 = Motor_RampDownToMin(m2, ramp_step);
+            m3 = Motor_RampDownToMin(m3, ramp_step);
+            m4 = Motor_RampDownToMin(m4, ramp_step);
+        }
+        TIM1_DShot_Write(m1, m2, m3, m4);
     }
 }

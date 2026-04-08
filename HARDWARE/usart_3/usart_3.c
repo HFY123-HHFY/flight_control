@@ -63,8 +63,8 @@ void USART3_IRQHandler(void)
 
 void USART3_Data(void)
 {
-	static float kp = 1.5f, ki = 0.0f, kd = 0.0f;// 外环PID参数
-	static float rate_kp = 0.7f, rate_ki = 0.0f, rate_kd = 0.0f; // 内环PID参数
+	static float kp = 4.0f, ki = 0.0f, kd = 0.0f;// 外环PID参数
+	static float rate_kp = 5.1f, rate_ki = 0.07f, rate_kd = 0.82f; // 内环PID参数
 
 	if (uart3_flag == 1)
 	{
@@ -116,18 +116,28 @@ void USART3_Data(void)
 			case 'g':	
 				kp += 0.2f;	
 			break;
-
+			case 'h':	
+				kp -= 0.2f;
+				if (kp < 0.0f)
+				{
+					kp = 0.0f;
+				}
+			break;
+			
 			default:
 				break;
 		}
 		// 更新PID参数
-		Set_PID(&pid_pitch, kp, ki, kd); // 设置Pitch外环PID参数
-		Set_PID(&pid_rate_pitch, rate_kp, rate_ki, rate_kd); // 设置Pitch内环PID参数
+		// Set_PID(&pid_pitch, kp, ki, kd); // 设置Pitch外环PID参数
+		// Set_PID(&pid_rate_pitch, rate_kp, rate_ki, rate_kd); // 设置Pitch内环PID参数
+		Set_PID(&pid_roll, kp, ki, kd); // 设置Roll外环PID参数
+		Set_PID(&pid_rate_roll, rate_kp, rate_ki, rate_kd); // 设置Roll内环PID参数
 	}
 
 	if (print_task_flag)
 	{
 		print_task_flag = 0;
+		printf("Roll: %.1f, kp: %.1f, rate_kp: %.1f, rate_kp:: %.2f, rate_kd:%.2f, out:%.1f\n",Roll, pid_roll.kp, pid_rate_roll.kp, pid_rate_roll.ki, pid_rate_roll.kd, pid_roll.output);
 		// printf("Pitch: %.1f, kp: %.1f, rate_kp: %.1f, rate_kp:: %.2f, rate_kd:%.2f, out:%.1f\n",Pitch, pid_pitch.kp, pid_rate_pitch.kp, pid_rate_pitch.ki, pid_rate_pitch.kd, pid_pitch.output);
 	}
 }
