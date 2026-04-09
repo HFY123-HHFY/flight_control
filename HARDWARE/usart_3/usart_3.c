@@ -64,7 +64,7 @@ void USART3_IRQHandler(void)
 void USART3_Data(void)
 {
 	static float kp = 4.0f, ki = 0.0f, kd = 0.0f;// 外环PID参数
-	static float rate_kp = 5.1f, rate_ki = 0.07f, rate_kd = 0.82f; // 内环PID参数
+	static float rate_kp = 13.2f, rate_ki = 0.00f, rate_kd = 0.00f; // 内环PID参数
 
 	if (uart3_flag == 1)
 	{
@@ -137,7 +137,7 @@ void USART3_Data(void)
 	if (print_task_flag)
 	{
 		print_task_flag = 0;
-		printf("Roll: %.1f, kp: %.1f, rate_kp: %.1f, rate_kp:: %.2f, rate_kd:%.2f, out:%.1f\n",Roll, pid_roll.kp, pid_rate_roll.kp, pid_rate_roll.ki, pid_rate_roll.kd, pid_roll.output);
+		// printf("Roll: %.1f, kp: %.1f, rate_kp: %.1f, rate_kp:: %.2f, rate_kd:%.2f, out:%.1f\n",Roll, pid_roll.kp, pid_rate_roll.kp, pid_rate_roll.ki, pid_rate_roll.kd, pid_roll.output);
 		// printf("Pitch: %.1f, kp: %.1f, rate_kp: %.1f, rate_kp:: %.2f, rate_kd:%.2f, out:%.1f\n",Pitch, pid_pitch.kp, pid_rate_pitch.kp, pid_rate_pitch.ki, pid_rate_pitch.kd, pid_pitch.output);
 	}
 }

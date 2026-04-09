@@ -224,11 +224,11 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         gyro_pitch_dps = GyroRawToDps(gyroy, gyro_bias_y);
 
         // 内环目标角速度 = 外环PID输出
-        // pid_rate_pitch.Target = pitch_rate_target;
-        // pid_rate_roll.Target = roll_rate_target;
+        pid_rate_pitch.Target = pitch_rate_target;
+        pid_rate_roll.Target = roll_rate_target;
 
-        pid_rate_pitch.Target= 0.0f;
-        pid_rate_roll.Target = 0.0f;
+        // pid_rate_pitch.Target= 0.0f;
+        // pid_rate_roll.Target = 0.0f;
 
         // 内环PID输出
         pitch_out = Limit_Output(PID_Calc(&pid_rate_pitch, gyro_pitch_dps), Motor_out_max);

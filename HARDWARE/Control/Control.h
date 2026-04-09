@@ -9,7 +9,7 @@
 #include "LC307.h"
 #include "NVIC_IRQ.h"
 
-#define Motor_out_max 500	//PID输出最后加载到电机上的输出限幅
+#define Motor_out_max 300	//PID输出最后加载到电机上的输出限幅
 #define GYRO_SENS_2000DPS 16.4f // ±2000dps量程下灵敏度: 16.4 LSB/(deg/s)
 #define RATE_TARGET_MAX_DPS 2047 // 外环输出的目标角速度限幅(deg/s)
 

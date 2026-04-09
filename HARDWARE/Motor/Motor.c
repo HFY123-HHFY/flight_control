@@ -49,9 +49,9 @@ void Motor_Test(void)
         */
 
         m1 = Motor_DShotClamp((float)speed_temp + pid_pitch.output + pid_roll.output);
-        m2 = Motor_DShotClamp((float)speed_temp - pid_pitch.output + pid_roll.output);
+        m2 = Motor_DShotClamp(25 + (float)speed_temp - pid_pitch.output + pid_roll.output);
         m3 = Motor_DShotClamp((float)speed_temp + pid_pitch.output - pid_roll.output);
-        m4 = Motor_DShotClamp((float)speed_temp - pid_pitch.output - pid_roll.output);
+        m4 = Motor_DShotClamp(25 + (float)speed_temp - pid_pitch.output - pid_roll.output);
         TIM1_DShot_Write(m1, m2, m3, m4);
     }
     else if (Key == 2)
@@ -59,11 +59,11 @@ void Motor_Test(void)
         pid_pitch.output = 0;
         pid_roll.output = 0;
 
-        const uint16_t ramp_step = 4U; // 每次调用降低4个单位的油门，5次调用降低20个单位/秒的下降速率
+        const uint16_t ramp_step = 8U; // 每次调用降低4个单位的油门，2次调用降低16个单位/秒的下降速率
         static uint8_t ramp_div = 0U; // 降速计数器
 
         ramp_div++;
-        if (ramp_div >= 5U)
+        if (ramp_div >= 2U)
         {
             ramp_div = 0U;
 

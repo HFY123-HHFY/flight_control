@@ -19,15 +19,10 @@ MPU6050:
 		mpu_angle(); // 读取MPU6050数据
 		PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
 
-		// Set_PID(&pid_pitch, 4.0f, 0.0f, 0.0f); // 设置Pitch外环PID参数
-		// Set_PID(&pid_rate_pitch, 5.1f, 0.06f, 0.82f); // 设置Pitch内环PID参数
-		// Set_PID(&pid_roll, 4.0f, 0.0f, 0.0f); // 设置Roll外环PID参数
-		// Set_PID(&pid_rate_roll, 6.2f, 0.07f, 0.84f); // 设置Roll内环PID参数
-
-		// Set_PID(&pid_pitch, 4.0f, 0.0f, 0.0f); // 设置Pitch外环PID参数
-		Set_PID(&pid_rate_pitch, 5.1f, 0.00f, 0.0f); // 设置Pitch内环PID参数
-		// Set_PID(&pid_roll, 4.0f, 0.0f, 0.0f); // 设置Roll外环PID参数
-		Set_PID(&pid_rate_roll, 5.2f, 0.00f, 0.0f); // 设置Roll内环PID参数
+		Set_PID(&pid_pitch, 2.0f, 0.0f, 0.0f); // 设置Pitch外环PID参数
+		Set_PID(&pid_rate_pitch, 8.2f, 0.00190f, 50.0f); // 设置Pitch内环PID参数
+		Set_PID(&pid_roll, 2.0f, 0.0f, 0.0f); // 设置Roll外环PID参数
+		Set_PID(&pid_rate_roll, 8.2f, 0.00185f, 50.0f); // 设置Roll内环PID参数
 
 /*
 NRF24L01:
