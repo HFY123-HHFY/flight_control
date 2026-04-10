@@ -3,3 +3,5 @@
 传感器：MPU6050,QMC5883P,BMP280,NRF24L01
 主要用途：飞行稳定控制
 更新写于：2026年3月23日
+
+实物迭代照片链接：https://share.weiyun.com/sFE8LkRg
