@@ -9,9 +9,8 @@
 #include "LC307.h"
 #include "NVIC_IRQ.h"
 
-#define Motor_out_max 300	//PID输出最后加载到电机上的输出限幅
+#define Motor_out_max 2047	//PID输出最后加载到电机上的输出限幅
 #define GYRO_SENS_2000DPS 16.4f // ±2000dps量程下灵敏度: 16.4 LSB/(deg/s)
-#define RATE_TARGET_MAX_DPS 2047 // 外环输出的目标角速度限幅(deg/s)
 
 // PID
 typedef struct 
@@ -23,6 +22,10 @@ typedef struct
     float Target; // 目标值
     float Actual; // 实际值
     float output; // 输出
+
+    float P_out; // 输出误差
+    float D_out; // 输出误差变化率
+    float I_out; // 输出误差累加
 
     float error0; // 当前误差
     float error1; // 上次误差

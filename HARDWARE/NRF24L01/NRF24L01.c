@@ -728,8 +728,8 @@ void NRF24L01_Data(void)
 				*(float *)&NRF24L01_TxPacket[4] = Pitch; // 占用4，5，6，7
 				*(float *)&NRF24L01_TxPacket[8] = Roll; // 占用8，9，10，11
 				*(float *)&NRF24L01_TxPacket[12] = Yaw; // 占用12，13，14，15
-				*(float *)&NRF24L01_TxPacket[16] = pid_pitch.output; // 占用16，17，18，19
-				*(float *)&NRF24L01_TxPacket[20] = pid_roll.output; // 占用20，21，22，23
+				*(float *)&NRF24L01_TxPacket[16] = pid_rate_pitch.output; // 占用16，17，18，19
+				*(float *)&NRF24L01_TxPacket[20] = pid_rate_roll.output; // 占用20，21，22，23
 				SendFlag = NRF24L01_Send(); // 发送数据包，并获取发送状态
 			}
 			

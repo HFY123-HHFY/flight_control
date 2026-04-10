@@ -19,11 +19,6 @@ MPU6050:
 		mpu_angle(); // 读取MPU6050数据
 		PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
 
-		Set_PID(&pid_pitch, 2.0f, 0.0f, 0.0f); // 设置Pitch外环PID参数
-		Set_PID(&pid_rate_pitch, 8.2f, 0.00190f, 50.0f); // 设置Pitch内环PID参数
-		Set_PID(&pid_roll, 2.0f, 0.0f, 0.0f); // 设置Roll外环PID参数
-		Set_PID(&pid_rate_roll, 8.2f, 0.00185f, 50.0f); // 设置Roll内环PID参数
-
 /*
 NRF24L01:
 */
@@ -32,7 +27,7 @@ NRF24L01:
 /*
 无线串口调试:
 */	
-		// USART3_Data();
+		USART3_Data();
 		
 /*
 
@@ -59,10 +54,11 @@ LC307光流:
 /*
 printf节拍调试-50ms:
 */	
-		// if (print_task_flag)
-		// {
-		// 	print_task_flag = 0;
-		// }
+		if (print_task_flag)
+		{
+			print_task_flag = 0;
+			printf("%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.output, pid_rate_pitch.output, pid_rate_pitch.P_out, pid_rate_pitch.I_out, pid_rate_pitch.D_out);
+		}
 
 /*
 CAN总线调试:
