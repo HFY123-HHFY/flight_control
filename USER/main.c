@@ -57,7 +57,7 @@ printf节拍调试-50ms:
 		if (print_task_flag)
 		{
 			print_task_flag = 0;
-			printf("%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.output, pid_rate_pitch.output, pid_rate_pitch.P_out, pid_rate_pitch.I_out, pid_rate_pitch.D_out);
+			// printf("%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.output, pid_rate_pitch.output, pid_rate_pitch.P_out, pid_rate_pitch.I_out, pid_rate_pitch.D_out);
 		}
 
 /*
