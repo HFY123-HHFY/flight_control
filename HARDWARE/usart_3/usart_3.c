@@ -146,7 +146,7 @@ void USART3_Data(void)
 	if (print_task_flag)
 	{
 		print_task_flag = 0;
-		printf("Roll: %.1f, kp: %.1f, rate_ki: %.1f, rate_kp:: %.2f, rate_kd:%.2f, out:%.1f\n",Roll, pid_roll.kp, pid_rate_roll.kp, pid_rate_roll.ki, pid_rate_roll.kd, pid_rate_roll.output);
+		printf("Roll: %.1f, kp: %.1f, rate_kp %.1f, rate_ki: %.2f, rate_kd:%.2f, out:%.1f\n",Roll, pid_roll.kp, pid_rate_roll.kp, pid_rate_roll.ki, pid_rate_roll.kd, pid_rate_roll.output);
 		// printf("Pitch: %.1f, kp: %.1f, rate_kp: %.1f, rate_kp:: %.2f, rate_kd:%.2f, out:%.1f\n",Pitch, pid_pitch.kp, pid_rate_pitch.kp, pid_rate_pitch.ki, pid_rate_pitch.kd, pid_pitch.output);
 	}
 }

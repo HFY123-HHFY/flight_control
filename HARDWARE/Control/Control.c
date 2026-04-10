@@ -102,6 +102,13 @@ float PID_Calc(PID_TypeDef* pid, float Actual)
     return pid->output;
 }
 
+void lowpass_filter(float* input, float* output, float alpha)
+{
+    static float prev_output = 0.0f;
+    *output = alpha * (*input) + (1 - alpha) * prev_output;
+    prev_output = *output;
+}
+
 /*
     Pitch 和 Roll 合并双环控制函数
     入口参数：
@@ -132,6 +139,9 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         // 内环实际角速度: 由陀螺仪原始值换算为 deg/s
         gyro_roll_dps = GyroRawToDps(gyrox, gyro_bias_x);
         gyro_pitch_dps = GyroRawToDps(gyroy, gyro_bias_y);
+
+        lowpass_filter(&gyro_roll_dps, &gyro_roll_dps, 0.5f); // 对Roll角速度进行低通滤波
+        lowpass_filter(&gyro_pitch_dps, &gyro_pitch_dps, 0.5f); // 对Pitch角速度进行低通滤波
 
         // 内环目标角速度 = 外环PID输出
         pid_rate_pitch.Target = pitch_rate_target;
