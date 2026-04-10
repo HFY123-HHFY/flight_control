@@ -90,6 +90,11 @@ float PID_Calc(PID_TypeDef* pid, float Actual)
         pid->error_sum = 0;
     }
 
+    if(pid->error0 < 0.2f && pid->error0 > -0.2f)
+    {
+        pid->error_sum = 0;
+    }
+
     pid->P_out = pid->kp * pid->error0;
     pid->I_out = pid->ki * pid->error_sum;
     pid->D_out = pid->kd * (pid->error0 - pid->error1);
