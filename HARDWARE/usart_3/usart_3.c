@@ -63,7 +63,7 @@ void USART3_IRQHandler(void)
 
 void USART3_Data(void)
 {
-	static float kp = 4.0f, ki = 0.0f, kd = 0.0f;// 外环PID参数h5
+	static float kp = 4.0f, ki = 0.0f, kd = 0.0f;// 外环PID参数
 	static float rate_kp = 5.5f, rate_ki = 0.10f, rate_kd = 18.00f; // 内环PID参数
 
 	if (uart3_flag == 1)
