@@ -75,43 +75,68 @@ void PID_Contorl_Init(void)
 float PID_Calc(PID_TypeDef* pid, float Actual)
 {
     float pif_output;
+    float output_limited;
+    float err_sum_candidate;
+    uint8_t integral_hold = 0;
 
     pid->Actual = Actual;
     pid->error1 = pid->error0;
     pid->error0 = pid->Target - pid->Actual;
 
-    if (pid->ki >= 0.00001f)
-    {
-        pid->error_sum += pid->error0;
-        pid->error_sum = (pid->error_sum > pid->Integral_max) ? pid->Integral_max : ((pid->error_sum < -pid->Integral_max) ? -pid->Integral_max : pid->error_sum);
-    }
-    else 
+    if (pid->ki < 0.00001f)
     {
         pid->error_sum = 0;
     }
 
-    if(pid->error0 < 0.2f && pid->error0 > -0.2f)
+    err_sum_candidate = pid->error_sum;
+    if (pid->ki >= 0.00001f)
     {
-        pid->error_sum = 0;
+        err_sum_candidate += pid->error0;
+        err_sum_candidate = (err_sum_candidate > pid->Integral_max) ? pid->Integral_max : ((err_sum_candidate < -pid->Integral_max) ? -pid->Integral_max : err_sum_candidate);
+    }
+
+    if (pid->error0 < 0.2f && pid->error0 > -0.2f)
+    {
+        // 小误差区域缓慢释放积分，保留配平能力，避免频繁清零导致慢偏
+        err_sum_candidate *= 0.98f;
     }
 
     pid->P_out = pid->kp * pid->error0;
-    pid->I_out = pid->ki * pid->error_sum;
+    pid->I_out = pid->ki * err_sum_candidate;
     pid->D_out = pid->kd * (pid->error0 - pid->error1);
 
     // 计算输出
     pif_output = pid->P_out + pid->I_out + pid->D_out;
 
-    pid->output = pif_output;
+    // 输出饱和且误差继续推动同方向饱和时，抑制积分，降低高油门慢偏风险
+    output_limited = Limit_Output(pif_output, (float)pid->Out_max);
+    if ((output_limited >= (float)pid->Out_max && pid->error0 > 0.0f) ||
+        (output_limited <= -(float)pid->Out_max && pid->error0 < 0.0f))
+    {
+        integral_hold = 1;
+    }
+
+    if (integral_hold == 0)
+    {
+        pid->error_sum = err_sum_candidate;
+    }
+    pid->I_out = pid->ki * pid->error_sum;
+    pif_output = pid->P_out + pid->I_out + pid->D_out;
+
+    pid->output = Limit_Output(pif_output, (float)pid->Out_max);
 
     return pid->output;
 }
 
-void lowpass_filter(float* input, float* output, float alpha)
+// 低通滤波器
+static float lowpass_filter(float input, float* prev_output, float alpha)
 {
-    static float prev_output = 0.0f;
-    *output = alpha * (*input) + (1 - alpha) * prev_output;
-    prev_output = *output;
+    float output;
+
+    output = alpha * input + (1.0f - alpha) * (*prev_output);
+    *prev_output = output;
+
+    return output;
 }
 
 /*
@@ -128,14 +153,16 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
     float roll_rate_target = 0.0f; // Roll外环输出
     float gyro_pitch_dps = 0.0f; // 陀螺仪测量的Pitch轴角速度(deg/s)
     float gyro_roll_dps = 0.0f; // 陀螺仪测量的Roll轴角速度(deg/s)
+    static float gyro_pitch_lpf = 0.0f; // Pitch轴滤波状态
+    static float gyro_roll_lpf = 0.0f; // Roll轴滤波状态
 
     if (pid_task_flag == 1)
     {
         pid_task_flag = 0; // 清除PID中断标志
 
         // 设置外环目标角度
-        pid_pitch.Target = 0.0f;
-        pid_roll.Target = 0.0f;
+        pid_pitch.Target = Target_Pitch;
+        pid_roll.Target = Target_Roll;
         
         //外环PID输出
         pitch_rate_target = PID_Calc(&pid_pitch, actual_pitch);
@@ -145,8 +172,8 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         gyro_roll_dps = GyroRawToDps(gyrox, gyro_bias_x);
         gyro_pitch_dps = GyroRawToDps(gyroy, gyro_bias_y);
 
-        lowpass_filter(&gyro_roll_dps, &gyro_roll_dps, 0.5f); // 对Roll角速度进行低通滤波
-        lowpass_filter(&gyro_pitch_dps, &gyro_pitch_dps, 0.5f); // 对Pitch角速度进行低通滤波
+        gyro_roll_dps = lowpass_filter(gyro_roll_dps, &gyro_roll_lpf, 0.5f); // 对Roll角速度进行低通滤波
+        gyro_pitch_dps = lowpass_filter(gyro_pitch_dps, &gyro_pitch_lpf, 0.5f); // 对Pitch角速度进行低通滤波
 
         // 内环目标角速度 = 外环PID输出
         pid_rate_pitch.Target = pitch_rate_target;
@@ -155,7 +182,6 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         // 内环PID输出
         pitch_rate_out = PID_Calc(&pid_rate_pitch, gyro_pitch_dps);
         roll_rate_out  = PID_Calc(&pid_rate_roll, gyro_roll_dps);
-        
         
         //串级PID最终输出
         pid_rate_pitch.output = pitch_rate_out;

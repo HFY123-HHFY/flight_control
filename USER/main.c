@@ -8,6 +8,12 @@ int main(void)
 {
 	Bsp_Init();
 
+	// PID参数仅需初始化一次，避免在主循环中重复改写
+	Set_PID(&pid_pitch, 0.8f, 0.0f, 0.0f); // Pitch外环PID参数
+	Set_PID(&pid_rate_pitch, 1.5f, 0.01f, 3.0f); // Pitch内环PID参数
+	Set_PID(&pid_roll, 0.8f, 0.0f, 0.0f); // Roll外环PID参数
+	Set_PID(&pid_rate_roll, 1.5f, 0.01f, 3.0f); // Roll内环PID参数
+
 	while (1)
 	{
 		//printf("Timer_Bsp_t:%d\r\n",Timer_Bsp_t);
@@ -17,10 +23,6 @@ MPU6050:
 */
 		mpu_angle(); // 读取MPU6050数据
 		PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
-		Set_PID(&pid_pitch, 0.8f, 0.0f, 0.0f); // 设置Pitch外环PID参数
-		Set_PID(&pid_rate_pitch, 1.5f, 0.01f, 3.0f); // 设置Pitch内环PID参数
-		Set_PID(&pid_roll, 0.8f, 0.0f, 0.0f); // 设置Roll外环PID参数
-		Set_PID(&pid_rate_roll, 1.5f, 0.01f, 3.0f); // 设置Roll内环PID参数
 
 /*
 NRF24L01:

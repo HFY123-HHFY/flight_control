@@ -741,9 +741,6 @@ void NRF24L01_Data(void)
 			/* 遥控器0~250映射到DShot油门48~PWM_DUTY_MAX(2047) */
 			uint16_t rx_duty = (uint16_t)(DSHOT_THROTTLE_MIN +
 				(((uint32_t)NRF24L01_RxPacket[2] * (PWM_DUTY_MAX - DSHOT_THROTTLE_MIN)) / 250U));
-			// int8_t R_H = NRF24L01_RxPacket[3];
-			// int8_t R_Z = NRF24L01_RxPacket[4];
-			// int8_t L_H = NRF24L01_RxPacket[5];
 
 			speed_temp = rx_duty; //把油门给到PWM占空比
 

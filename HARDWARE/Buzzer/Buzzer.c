@@ -18,8 +18,14 @@ void Buzzer_Init(void)
     TIM3->CR1 |= (1 << 0); // 启动定时器
 
     Buzzer_Control(500U, 2700U);
+    LED1 = 1;
+    LED2 = 1;
+    LED3 = 1;
     delay_ms(300);
     Buzzer_Control(0U, 2700U);
+    LED1 = 0;
+    LED2 = 0;
+    LED3 = 0;
 }
 
 // duty: 占空比千分比，范围0~1000；freq: 频率范围2500~2900Hz

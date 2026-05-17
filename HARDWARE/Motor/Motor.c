@@ -32,6 +32,61 @@ static uint16_t Motor_RampDownToMin(uint16_t current, uint16_t step)
     return DSHOT_THROTTLE_MIN;
 }
 
+// 混控反饱和: 先整体平移4路输出，再做限幅，减少高油门时姿态控制失真
+static void Motor_MixWithDesaturation(float base, float pitch, float roll,
+                                      uint16_t* out_m1, uint16_t* out_m2,
+                                      uint16_t* out_m3, uint16_t* out_m4)
+{
+    float m1_raw; // 电机1的原始输出（尚未限幅）
+    float m2_raw; // 电机2的原始输出（尚未限幅）
+    float m3_raw; // 电机3的原始输出（尚未限幅）
+    float m4_raw; // 电机4的原始输出（尚未限幅）
+    float max_raw; // 四路中的最大原始输出
+    float min_raw; // 四路中的最小原始输出
+    float shift; // 统一平移量，用于将四路一起搬回可用区间
+
+    // 1) 先按混控矩阵得到四路“理想输出”（尚未限幅）
+    m1_raw = base + pitch + roll;
+    m2_raw = base - pitch + roll;
+    m3_raw = base + pitch - roll;
+    m4_raw = base - pitch - roll;
+
+    // 2) 找到四路中的最大值和最小值，用于判断是否超出DShot范围
+    max_raw = m1_raw;
+    if (m2_raw > max_raw) { max_raw = m2_raw; }
+    if (m3_raw > max_raw) { max_raw = m3_raw; }
+    if (m4_raw > max_raw) { max_raw = m4_raw; }
+
+    min_raw = m1_raw;
+    if (m2_raw < min_raw) { min_raw = m2_raw; }
+    if (m3_raw < min_raw) { min_raw = m3_raw; }
+    if (m4_raw < min_raw) { min_raw = m4_raw; }
+
+    // 3) 计算统一平移量 shift
+    //    目标: 尽量把四路一起“搬回”可用区间 [DSHOT_THROTTLE_MIN, DSHOT_THROTTLE_MAX]
+    //    这样可以保留四路之间的差分关系(姿态控制力矩)，避免单路先截断引入偏航/侧偏。
+    shift = 0.0f;
+    if (max_raw > (float)DSHOT_THROTTLE_MAX)
+    {
+        shift = (float)DSHOT_THROTTLE_MAX - max_raw;
+    }
+    if ((min_raw + shift) < (float)DSHOT_THROTTLE_MIN)
+    {
+        shift += (float)DSHOT_THROTTLE_MIN - (min_raw + shift);
+    }
+
+    // 4) 对四路统一加 shift，再做最终限幅
+    m1_raw += shift;
+    m2_raw += shift;
+    m3_raw += shift;
+    m4_raw += shift;
+
+    *out_m1 = Motor_DShotClamp(m1_raw);
+    *out_m2 = Motor_DShotClamp(m2_raw);
+    *out_m3 = Motor_DShotClamp(m3_raw);
+    *out_m4 = Motor_DShotClamp(m4_raw);
+}
+
 void Motor_Test(void)
 {
     static uint16_t m1 = DSHOT_THROTTLE_MIN;
@@ -48,10 +103,11 @@ void Motor_Test(void)
             电机4: 基础 - Pitch调节 - Roll调节
         */
 
-        m1 = Motor_DShotClamp((float)speed_temp + pid_rate_pitch.output + pid_rate_roll.output);
-        m2 = Motor_DShotClamp((float)speed_temp - pid_rate_pitch.output + pid_rate_roll.output);
-        m3 = Motor_DShotClamp((float)speed_temp + pid_rate_pitch.output - pid_rate_roll.output);
-        m4 = Motor_DShotClamp((float)speed_temp - pid_rate_pitch.output - pid_rate_roll.output);
+        // 使用“反饱和混控”: 在高基础油门下尽量保持PID差分有效
+        Motor_MixWithDesaturation((float)speed_temp,
+                                  pid_rate_pitch.output,
+                                  pid_rate_roll.output,
+                                  &m1, &m2, &m3, &m4);
         TIM1_DShot_Write(m1, m2, m3, m4);
     }
     else if (Key == 2)
