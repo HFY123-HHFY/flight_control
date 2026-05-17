@@ -102,7 +102,6 @@ u8 MPU_Set_LPF(u16 lpf);
 u8 MPU_Set_Rate(u16 rate);
 u8 MPU_Set_Fifo(u8 sens);
 
-
 short MPU_Get_Temperature(void);
 u8 MPU_Get_Gyroscope(short *gx,short *gy,short *gz);
 u8 MPU_Get_Accelerometer(short *ax,short *ay,short *az);

@@ -12,6 +12,13 @@ void LED_Init(void);
 
 #endif
 
+//CMskeLists.txt
+
+/*没有位带操作IO翻转方法*/
+// static volatile uint8_t g_led1Level = 0U;	/* g_led1Level: 定时器中断中用于翻转 LED1 的软件状态位。 */
+//g_led1Level = (g_led1Level == 0U) ? 1U : 0U;
+// Enroll_LED_Control(LED1, (g_led1Level != 0U) ? LED_HIGH : LED_LOW);
+
 /*
 uint8_t 是无符号的8位整数类型，范围从0到255。它通常用于存储小的整数值或字符数据。
 uint16_t 是无符号的16位整数类型，范围从0到65535

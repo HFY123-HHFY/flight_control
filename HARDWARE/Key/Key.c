@@ -1,7 +1,7 @@
 #include "key.h"
 
 uint8_t Key_Num;
-uint8_t Key = 0;
+uint8_t Key = 0; // 按键键值
 
 void Key_Init(void)
 {
@@ -57,18 +57,12 @@ void Key_Tick(void)
 
 void key_Get(void)
 {
-	uint8_t KeyNum = 0;
+	static uint8_t KeyNum = 0;
 	
 	KeyNum = Key_GetNum();
 	if(KeyNum)
 	{
 		Key = KeyNum;
 		KeyNum = 0;
-	}
-
-	if (Key == 1)
-	{
-		speed_temp += 50;
-		Key = 0;
 	}
 }

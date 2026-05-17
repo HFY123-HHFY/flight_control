@@ -546,8 +546,10 @@ void NRF24L01_Init(void)
 	/*初始化配置完成，芯片默认进入接收模式*/
 	NRF24L01_Rx();
 
-	// NRF24L01_WriteReg(NRF24L01_SETUP_RETR,0xa1);
-	// uint16_t Data = NRF24L01_ReadReg(NRF24L01_SETUP_RETR);
+/*回环测试*/
+	NRF24L01_WriteReg(NRF24L01_SETUP_RETR,0xb1);
+	uint16_t Data = NRF24L01_ReadReg(NRF24L01_SETUP_RETR);
+	printf("Data:%02x\r\n",Data);
 	// OLED_Printf(108,0,OLED_8X16,"%02x",Data);
 	// OLED_Update();
 }

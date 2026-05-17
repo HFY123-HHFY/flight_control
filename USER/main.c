@@ -10,18 +10,17 @@ int main(void)
 
 	while (1)
 	{
-		// printf("Timer_Bsp_t:%d\r\n",Timer_Bsp_t);
+		//printf("Timer_Bsp_t:%d\r\n",Timer_Bsp_t);
 		// usart_printf(USART3,"Pitch:%.1f, Roll:%.1f, Yaw:%.1f,QMC:%.1f,alt:%.1f\r\n",Pitch,Roll,Yaw,Angle_XY,alt);
-
 /*
 MPU6050:
 */
 		mpu_angle(); // 读取MPU6050数据
 		PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
-		Set_PID(&pid_pitch, 1.0f, 0.0f, 0.0f); // 设置Pitch外环PID参数
-		Set_PID(&pid_rate_pitch, 2.0f, 0.01f, 0.50f); // 设置Pitch内环PID参数
-		Set_PID(&pid_roll, 1.0f, 0.0f, 0.0f); // 设置Roll外环PID参数
-		Set_PID(&pid_rate_roll, 2.0f, 0.01f, 0.50f); // 设置Roll内环PID参数
+		Set_PID(&pid_pitch, 0.8f, 0.0f, 0.0f); // 设置Pitch外环PID参数
+		Set_PID(&pid_rate_pitch, 1.5f, 0.01f, 3.0f); // 设置Pitch内环PID参数
+		Set_PID(&pid_roll, 0.8f, 0.0f, 0.0f); // 设置Roll外环PID参数
+		Set_PID(&pid_rate_roll, 1.5f, 0.01f, 3.0f); // 设置Roll内环PID参数
 
 /*
 NRF24L01:
@@ -54,13 +53,13 @@ LC307光流:
 		// usart_printf(USART3,"LC307 Vx:%.3f Vy:%.3f Px:%.3f Py:%.3f Lost:%d\r\n",
 		// g_lc307_speed_x,g_lc307_speed_y,g_lc307_pos_x,g_lc307_pos_y,g_lost_pos_dev);
 
-
 /*
 printf节拍调试-50ms:
-*/	
+*/
 		if (print_task_flag)
 		{
 			print_task_flag = 0;
+			//usart_printf(USART3,"Pitch:%.1f, Roll:%.1f, Yaw:%.1f\r\n",Pitch,Roll,Yaw);
 			// printf("%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.output, pid_rate_pitch.output, pid_rate_pitch.P_out, pid_rate_pitch.I_out, pid_rate_pitch.D_out);
 		}
 
@@ -72,8 +71,9 @@ CAN总线调试:
 /*
 OLED:
 */ 
-		// OLED_Printf(0,0,OLED_8X16,"%d",Timer_Bsp_t);
-		// OLED_Update();
+//		OLED_Clear();
+//		OLED_Printf(0,0,OLED_8X16,"%d",Timer_Bsp_t);
+//		OLED_Update();
 
 /*
 电机调试:

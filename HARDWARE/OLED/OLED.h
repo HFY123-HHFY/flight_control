@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include "OLED_Data.h"
-#include "delay.h" //添加一个延时头文件
 
 /*参数宏定义*********************/
 

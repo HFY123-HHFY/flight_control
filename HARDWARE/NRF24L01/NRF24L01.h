@@ -4,6 +4,7 @@
 #include "stm32f4xx.h" 
 #include "NRF24L01_Define.h"
 
+#include "usart.h"
 #include "Motor.h"
 #include "QMC5883P.h"
 #include "BMP280.h"
