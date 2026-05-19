@@ -2,17 +2,18 @@
 
 /*
 407_飞控
+初始化红灯亮-校准陀螺仪蓝灯亮-锁定油门绿灯亮-可以正常起飞时灯全灭
 */
 
 int main(void)
 {
 	Bsp_Init();
 
-	// PID参数仅需初始化一次，避免在主循环中重复改写
-	Set_PID(&pid_pitch, 0.8f, 0.0f, 0.0f); // Pitch外环PID参数
-	Set_PID(&pid_rate_pitch, 1.5f, 0.01f, 3.0f); // Pitch内环PID参数
-	Set_PID(&pid_roll, 0.8f, 0.0f, 0.0f); // Roll外环PID参数
-	Set_PID(&pid_rate_roll, 1.5f, 0.01f, 3.0f); // Roll内环PID参数
+	// 串级PID设置参数
+	Set_PID(&pid_pitch, 1.2f, 0.05f, 0.0f); // Pitch外环PID参数
+	Set_PID(&pid_rate_pitch, 1.5f, 0.01f, 2.0f); // Pitch内环PID参数
+	Set_PID(&pid_roll, 1.2f, 0.05f, 0.0f); // Roll外环PID参数
+	Set_PID(&pid_rate_roll, 1.5f, 0.01f, 2.0f); // Roll内环PID参数
 
 	while (1)
 	{
@@ -61,8 +62,7 @@ printf节拍调试-50ms:
 		if (print_task_flag)
 		{
 			print_task_flag = 0;
-			//usart_printf(USART3,"Pitch:%.1f, Roll:%.1f, Yaw:%.1f\r\n",Pitch,Roll,Yaw);
-			// printf("%.1f,%.1f,%.1f,%.1f,%.1f\n",pid_pitch.output, pid_rate_pitch.output, pid_rate_pitch.P_out, pid_rate_pitch.I_out, pid_rate_pitch.D_out);
+			// usart_printf(USART3,"gyrox:%hd, gyroy:%hd, gyroz:%hd\r\n",gyrox,gyroy,gyroz);
 		}
 
 /*

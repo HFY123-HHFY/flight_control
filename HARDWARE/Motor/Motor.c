@@ -1,6 +1,10 @@
 #include "Motor.h"
 
+/* 电机基础油门值 - 由摇杆提供 */
 uint16_t speed_temp = 0;
+
+/* 电机输出值 - 用于存储最终的DShot油门值 */
+uint16_t Motor_Output[4] = {DSHOT_THROTTLE_MIN, DSHOT_THROTTLE_MIN, DSHOT_THROTTLE_MIN, DSHOT_THROTTLE_MIN};
 
 // 将PID输出和基础油门值转换为DShot油门值，并进行限幅
 static uint16_t Motor_DShotClamp(float val)
@@ -37,13 +41,13 @@ static void Motor_MixWithDesaturation(float base, float pitch, float roll,
                                       uint16_t* out_m1, uint16_t* out_m2,
                                       uint16_t* out_m3, uint16_t* out_m4)
 {
-    float m1_raw; // 电机1的原始输出（尚未限幅）
-    float m2_raw; // 电机2的原始输出（尚未限幅）
-    float m3_raw; // 电机3的原始输出（尚未限幅）
-    float m4_raw; // 电机4的原始输出（尚未限幅）
-    float max_raw; // 四路中的最大原始输出
-    float min_raw; // 四路中的最小原始输出
-    float shift; // 统一平移量，用于将四路一起搬回可用区间
+    float m1_raw = 0.0f; // 电机1的原始输出（尚未限幅）
+    float m2_raw = 0.0f; // 电机2的原始输出（尚未限幅）
+    float m3_raw = 0.0f; // 电机3的原始输出（尚未限幅）
+    float m4_raw = 0.0f; // 电机4的原始输出（尚未限幅）
+    float max_raw = 0.0f; // 四路中的最大原始输出
+    float min_raw = 0.0f; // 四路中的最小原始输出
+    float shift = 0.0f; // 统一平移量，用于将四路一起搬回可用区间
 
     // 1) 先按混控矩阵得到四路“理想输出”（尚未限幅）
     m1_raw = base + pitch + roll;
@@ -108,7 +112,12 @@ void Motor_Test(void)
                                   pid_rate_pitch.output,
                                   pid_rate_roll.output,
                                   &m1, &m2, &m3, &m4);
+        Motor_Output[0] = m1;
+        Motor_Output[1] = m2;
+        Motor_Output[2] = m3;
+        Motor_Output[3] = m4;
         TIM1_DShot_Write(m1, m2, m3, m4);
+        LED1 = 0;
     }
     else if (Key == 2)
     {
@@ -127,7 +136,13 @@ void Motor_Test(void)
             m2 = Motor_RampDownToMin(m2, ramp_step);
             m3 = Motor_RampDownToMin(m3, ramp_step);
             m4 = Motor_RampDownToMin(m4, ramp_step);
+
+            Motor_Output[0] = m1;
+            Motor_Output[1] = m2;
+            Motor_Output[2] = m3;
+            Motor_Output[3] = m4;
         }
         TIM1_DShot_Write(m1, m2,m3, m4);
+        LED1 = 1;
     }
 }

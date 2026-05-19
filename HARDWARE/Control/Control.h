@@ -53,7 +53,6 @@ void LC307_Position_Control(void); // 光流位置环控制
 
 extern PID_TypeDef pid_pitch, pid_roll, pid_yaw, pid_alt; // 外环PID变量（角度/高度）
 extern PID_TypeDef pid_rate_pitch, pid_rate_roll, pid_rate_yaw; // 内环PID变量（角速度）
-extern uint8_t pid_flag; // PID控制标志位
 extern uint8_t pid_task_flag; // PID中断标志
 extern float Target_Pitch; // 目标俯仰角（deg）
 extern float Target_Roll; // 目标横滚角（deg）

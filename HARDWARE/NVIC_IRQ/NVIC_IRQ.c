@@ -6,7 +6,7 @@ volatile uint8_t print_task_flag = 0; // printf节拍-50ms
 void TIM3_IRQHandler(void)
 {
     static uint16_t time_t = 0; //程序运行时间计数
-    static uint8_t pif_5ms = 0; // 5ms PID节拍计数
+    static uint8_t pid_tick_2ms = 0; // 2ms PID节拍计数(500Hz)
     static uint8_t printf_50ms = 0; // 50ms printf节拍计数
 
     static uint8_t lc307_tick_20ms = 0; // 20ms LC307速度环节拍计数
@@ -14,18 +14,17 @@ void TIM3_IRQHandler(void)
 
 	if(TIM_GetITStatus(TIM3,TIM_IT_Update) == SET) //溢出中断
 	{
-        pif_5ms++;
+    pid_tick_2ms++;
         printf_50ms++;
         lc307_tick_20ms++;
         lc307_tick_40ms++;
         time_t++;
-        
 /*
-pid节拍-5ms
+pid节拍-2ms(提高控制刷新率，减小高油门下慢偏风险)
 */
-        if (pif_5ms >= 5)
+    if (pid_tick_2ms >= 2)
         {
-            pif_5ms = 0;
+            pid_tick_2ms = 0;
             pid_task_flag = 1;
         }
 /*

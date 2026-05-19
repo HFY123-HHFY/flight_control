@@ -1,11 +1,10 @@
-
 /*
   * 本程序由江协科技创建
   * 
-  * 程序名称：				NRF24L01无线通信模块驱动程序
-  * 程序创建时间：			2025.6.9
-  * 当前程序版本：			V1.0
-  * 当前版本发布时间：		2024.6.9
+  * 程序名称：                NRF24L01无线通信模块驱动程序
+  * 程序创建时间：            2025.6.9
+  * 当前程序版本：            V1.0
+  * 当前版本发布时间：        2024.6.9
   */
 
 #include "NRF24L01.h"
@@ -29,6 +28,12 @@ uint8_t NRF24L01_TxPacket[NRF24L01_TX_PACKET_WIDTH];				//发送数据包
 uint8_t NRF24L01_RxAddress[5] = {0x11, 0x22, 0x33, 0x44, 0x55};		//接收通道0地址，固定5字节
 #define NRF24L01_RX_PACKET_WIDTH		32							//接收通道0数据包宽度，范围：1~32字节
 uint8_t NRF24L01_RxPacket[NRF24L01_RX_PACKET_WIDTH];				//接收数据包
+
+static void NRF24L01_WriteU16LE(uint8_t *packet, uint8_t offset, uint16_t value)
+{
+	packet[offset] = (uint8_t)(value & 0xFFU);
+	packet[offset + 1U] = (uint8_t)((value >> 8) & 0xFFU);
+}
 
 /**
   * 提示：设备A和设备B进行通信
@@ -715,39 +720,41 @@ void NRF24L01_Data(void)
 	ReceiveFlag = NRF24L01_Receive();
 	if(ReceiveFlag == 1)
 	{
-		uint8_t ID = NRF24L01_RxPacket[0];
+		uint8_t Mode = NRF24L01_RxPacket[0];
 
-//////////////////////\		if (ID == 0x00 || ID == 0x01)
+		if (Mode == 1) //回传数据包
 		{
-			if (ID == 0x01)
-			{
-				NRF24L01_TxPacket[0] = 0x02; // 回传数据包ID
-				// 回传基础油门 speed_temp (uint16_t, 低字节在前)
-				NRF24L01_TxPacket[1] = (uint8_t)(speed_temp & 0xFFU);
-				NRF24L01_TxPacket[2] = (uint8_t)((speed_temp >> 8) & 0xFFU);
+			NRF24L01_TxPacket[0] = 0x01; // 回传数据包ID
+			// 回传基础油门 speed_temp (uint16_t, 低字节在前)
+			NRF24L01_WriteU16LE(NRF24L01_TxPacket, 1, speed_temp);
+			NRF24L01_TxPacket[3] = 0U;
 
-				//4~23 字节放姿态数据
-				*(float *)&NRF24L01_TxPacket[4] = Pitch; // 占用4，5，6，7
-				*(float *)&NRF24L01_TxPacket[8] = Roll; // 占用8，9，10，11
-				*(float *)&NRF24L01_TxPacket[12] = Yaw; // 占用12，13，14，15
-				*(float *)&NRF24L01_TxPacket[16] = pid_rate_pitch.output; // 占用16，17，18，19
-				*(float *)&NRF24L01_TxPacket[20] = pid_rate_roll.output; // 占用20，21，22，23
-				SendFlag = NRF24L01_Send(); // 发送数据包，并获取发送状态
-			}
-			
-			//得到遥控器的键值
-			Key = NRF24L01_RxPacket[1];
+			//4~23 字节放姿态数据
+			*(float *)&NRF24L01_TxPacket[4] = Pitch; // 占用4，5，6，7
+			*(float *)&NRF24L01_TxPacket[8] = Roll; // 占用8，9，10，11
+			*(float *)&NRF24L01_TxPacket[12] = Yaw; // 占用12，13，14，15
+			*(float *)&NRF24L01_TxPacket[16] = pid_rate_pitch.output; // 占用16，17，18，19
+			*(float *)&NRF24L01_TxPacket[20] = pid_rate_roll.output; // 占用20，21，22，23
 
-			/* 遥控器0~250映射到DShot油门48~PWM_DUTY_MAX(2047) */
-			uint16_t rx_duty = (uint16_t)(DSHOT_THROTTLE_MIN +
-				(((uint32_t)NRF24L01_RxPacket[2] * (PWM_DUTY_MAX - DSHOT_THROTTLE_MIN)) / 250U));
+			//24~31 字节放最终加载到4个电机上的油门值
+			NRF24L01_WriteU16LE(NRF24L01_TxPacket, 24, Motor_Output[0]);
+			NRF24L01_WriteU16LE(NRF24L01_TxPacket, 26, Motor_Output[1]);
+			NRF24L01_WriteU16LE(NRF24L01_TxPacket, 28, Motor_Output[2]);
+			NRF24L01_WriteU16LE(NRF24L01_TxPacket, 30, Motor_Output[3]);
+			SendFlag = NRF24L01_Send(); // 发送数据包，并获取发送状态
+		}
+		//得到遥控器的键值
+		Key = NRF24L01_RxPacket[1];
 
+		/* 遥控器0~250映射到DShot油门48~PWM_DUTY_MAX(2047) */
+		uint16_t rx_duty = (uint16_t)(DSHOT_THROTTLE_MIN +
+			(((uint32_t)NRF24L01_RxPacket[2] * (PWM_DUTY_MAX - DSHOT_THROTTLE_MIN)) / 250U));
+
+		speed_temp = rx_duty; //把油门给到PWM占空比
+
+		if (Key == 1) //解锁基础油门
+		{
 			speed_temp = rx_duty; //把油门给到PWM占空比
-
-			if (Key == 1) //解锁基础油门
-			{
-				speed_temp = rx_duty; //把油门给到PWM占空比
-			}
 		}
 	}
 }
