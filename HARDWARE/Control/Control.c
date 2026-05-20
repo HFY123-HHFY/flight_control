@@ -279,19 +279,19 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
         gyro_pitch_dps = lowpass_filter(gyro_pitch_dps, &gyro_pitch_lpf, 0.5f); // 对Pitch角速度进行低通滤波
 
         // 每50ms打印一次: 原始值 + 零偏 + 校准后的角速度(dps)
-        gyro_dbg_div++;
-        if (gyro_dbg_div >= 25U)
-        {
-            gyro_dbg_div = 0U;
-            usart_printf(USART3,
-                         "raw(gx=%hd,gy=%hd) bias(bx=%.2f,by=%.2f) dps(rx=%.3f,ry=%.3f)\r\n",
-                         gyrox,
-                         gyroy,
-                         gyro_bias_x,
-                         gyro_bias_y,
-                         gyro_roll_dps,
-                         gyro_pitch_dps);
-        }
+        // gyro_dbg_div++;
+        // if (gyro_dbg_div >= 25U)
+        // {
+        //     gyro_dbg_div = 0U;
+        //     usart_printf(USART3,
+        //                  "raw(gx=%hd,gy=%hd) bias(bx=%.2f,by=%.2f) dps(rx=%.3f,ry=%.3f)\r\n",
+        //                  gyrox,
+        //                  gyroy,
+        //                  gyro_bias_x,
+        //                  gyro_bias_y,
+        //                  gyro_roll_dps,
+        //                  gyro_pitch_dps);
+        // }
 
         // 内环目标角速度 = 外环PID输出
         pid_rate_pitch.Target = pitch_rate_target;

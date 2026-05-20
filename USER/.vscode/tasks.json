@@ -1,0 +1,40 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-keil",
+            "type": "shell",
+            "command": "D:/kei5_39/MDK_539/UV4/UV4.exe",
+            "args": [
+                "-b",
+                "${workspaceFolder}/flight_control.uvprojx",
+                "-j0",
+                "-t",
+                "407_temp",
+                "-o",
+                "${workspaceFolder}/.vscode/uv4.log"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "flash-keil",
+            "type": "shell",
+            "command": "D:/kei5_39/MDK_539/UV4/UV4.exe",
+            "args": [
+                "-f",
+                "${workspaceFolder}/flight_control.uvprojx",
+                "-j0",
+                "-t",
+                "407_temp",
+                "-o",
+                "${workspaceFolder}/.vscode/uv4.log"
+            ],
+            "group": "none",
+            "problemMatcher": []
+        }
+    ]
+}

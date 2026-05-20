@@ -107,11 +107,14 @@ void Motor_Test(void)
             电机4: 基础 - Pitch调节 - Roll调节
         */
 
-        // 使用“反饱和混控”: 在高基础油门下尽量保持PID差分有效
+        // 油门相关PID补偿: 高油门时自动提升PID输出权重，防止姿态控制力被淹没
+        float throttle_ratio = ((float)speed_temp - (float)DSHOT_THROTTLE_MIN) / ((float)DSHOT_THROTTLE_MAX - (float)DSHOT_THROTTLE_MIN);
+        // 补偿系数范围建议1.0~1.8，可根据实际机型调整
+        float pid_comp_scale = 1.0f + 0.8f * throttle_ratio;
         Motor_MixWithDesaturation((float)speed_temp,
-                                  pid_rate_pitch.output,
-                                  pid_rate_roll.output,
-                                  &m1, &m2, &m3, &m4);
+                      pid_rate_pitch.output * pid_comp_scale,
+                      pid_rate_roll.output * pid_comp_scale,
+                      &m1, &m2, &m3, &m4);
         Motor_Output[0] = m1;
         Motor_Output[1] = m2;
         Motor_Output[2] = m3;

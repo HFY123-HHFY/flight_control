@@ -10,10 +10,11 @@ int main(void)
 	Bsp_Init();
 
 	// 串级PID设置参数
-	Set_PID(&pid_pitch, 1.2f, 0.05f, 0.0f); // Pitch外环PID参数
-	Set_PID(&pid_rate_pitch, 1.5f, 0.01f, 2.0f); // Pitch内环PID参数
-	Set_PID(&pid_roll, 1.2f, 0.05f, 0.0f); // Roll外环PID参数
-	Set_PID(&pid_rate_roll, 1.5f, 0.01f, 2.0f); // Roll内环PID参数
+	Set_PID(&pid_pitch, 1.2f, 0.03f, 0.0f); // Pitch外环PID参数
+	Set_PID(&pid_rate_pitch, 1.5f, 0.01f, 4.0f); // Pitch内环PID参数
+
+	Set_PID(&pid_roll, 1.2f, 0.03f, 0.0f); // Roll外环PID参数
+	Set_PID(&pid_rate_roll, 1.5f, 0.01f, 4.0f); // Roll内环PID参数
 
 	while (1)
 	{
@@ -24,7 +25,6 @@ MPU6050:
 */
 		mpu_angle(); // 读取MPU6050数据
 		PID_Pitch_Roll_Combined(Pitch, Roll); // Pitch 和 Roll 合并双环控制函数
-
 /*
 NRF24L01:
 */

@@ -1,0 +1,12 @@
+[
+  {
+    "key": "f7",
+    "command": "workbench.action.tasks.runTask",
+    "args": "build-keil"
+  },
+  {
+    "key": "f8",
+    "command": "workbench.action.tasks.runTask",
+    "args": "flash-keil"
+  }
+]

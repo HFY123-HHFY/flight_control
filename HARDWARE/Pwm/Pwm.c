@@ -13,6 +13,40 @@
 
 static uint16_t g_dshot_cmd[DSHOT_FRAME_BUF_LEN][4] = {0};
 static uint16_t g_dshot_throttle[4] = {0, 0, 0, 0};
+static uint16_t g_dshot_logical[4] = {0, 0, 0, 0};
+
+// 规范化DShot输入值:
+// 0 表示停转; 1~47 是保留命令区(非油门), 为避免误触发命令统一按 0 处理;
+// 48~2047 为有效油门区间。
+static uint16_t DShot_NormalizeThrottle(uint16_t throttle)
+{
+    if (throttle == 0U)
+    {
+        return 0U;
+    }
+
+    if (throttle < DSHOT_THROTTLE_MIN)
+    {
+        return 0U;
+    }
+
+    if (throttle > DSHOT_THROTTLE_MAX)
+    {
+        return DSHOT_THROTTLE_MAX;
+    }
+
+    return throttle;
+}
+
+// 逻辑电机号(m1~m4)到TIM1通道发送顺序映射。
+// 当前接线对应关系: CH1<-m3, CH2<-m1, CH3<-m2, CH4<-m4
+static void DShot_MapLogicalToChannels(uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4)
+{
+    g_dshot_throttle[0] = DShot_NormalizeThrottle(m3);
+    g_dshot_throttle[1] = DShot_NormalizeThrottle(m1);
+    g_dshot_throttle[2] = DShot_NormalizeThrottle(m2);
+    g_dshot_throttle[3] = DShot_NormalizeThrottle(m4);
+}
 
 // 将4路电机的DShot命令打包成TIM1的CCR寄存器值, 通过DMA自动更新发送
 static uint16_t DShot_PacketEncode(uint16_t throttle, uint8_t telemetry)
@@ -20,10 +54,7 @@ static uint16_t DShot_PacketEncode(uint16_t throttle, uint8_t telemetry)
     uint16_t packet;
     uint8_t crc;
 
-    if (throttle > DSHOT_THROTTLE_MAX)
-    {
-        throttle = DSHOT_THROTTLE_MAX;
-    }
+    throttle = DShot_NormalizeThrottle(throttle);
 
     packet = (uint16_t)(((throttle & 0x07FFU) << 1U) | (telemetry ? 1U : 0U));
     crc = (uint8_t)((packet ^ (packet >> 4U) ^ (packet >> 8U)) & 0x0FU);
@@ -187,10 +218,15 @@ void TIM1_PWM_Init(u32 arr, u32 psc)
 // 将输入的油门值限制在 DShot 协议允许的范围内, 并转换为整数
 void TIM1_DShot_Write(uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4)
 {
-    g_dshot_throttle[0] = m3; //3
-    g_dshot_throttle[1] = m1; //1
-    g_dshot_throttle[2] = m2; //2
-    g_dshot_throttle[3] = m4; //4
+    g_dshot_logical[0] = DShot_NormalizeThrottle(m1);
+    g_dshot_logical[1] = DShot_NormalizeThrottle(m2);
+    g_dshot_logical[2] = DShot_NormalizeThrottle(m3);
+    g_dshot_logical[3] = DShot_NormalizeThrottle(m4);
+
+    DShot_MapLogicalToChannels(g_dshot_logical[0],
+                               g_dshot_logical[1],
+                               g_dshot_logical[2],
+                               g_dshot_logical[3]);
 
     TIM1_DShot_SendFrame(g_dshot_throttle[0],
                          g_dshot_throttle[1],
@@ -200,7 +236,11 @@ void TIM1_DShot_Write(uint16_t m1, uint16_t m2, uint16_t m3, uint16_t m4)
 
 void MOS3_Control(uint16_t duty)
 {
-    g_dshot_throttle[2] = duty;
+    g_dshot_logical[2] = DShot_NormalizeThrottle(duty);
+    DShot_MapLogicalToChannels(g_dshot_logical[0],
+                               g_dshot_logical[1],
+                               g_dshot_logical[2],
+                               g_dshot_logical[3]);
     TIM1_DShot_SendFrame(g_dshot_throttle[0],
                          g_dshot_throttle[1],
                          g_dshot_throttle[2],
@@ -209,7 +249,11 @@ void MOS3_Control(uint16_t duty)
 
 void MOS1_Control(uint16_t duty)
 {
-    g_dshot_throttle[0] = duty;
+    g_dshot_logical[0] = DShot_NormalizeThrottle(duty);
+    DShot_MapLogicalToChannels(g_dshot_logical[0],
+                               g_dshot_logical[1],
+                               g_dshot_logical[2],
+                               g_dshot_logical[3]);
     TIM1_DShot_SendFrame(g_dshot_throttle[0],
                          g_dshot_throttle[1],
                          g_dshot_throttle[2],
@@ -218,7 +262,11 @@ void MOS1_Control(uint16_t duty)
 
 void MOS2_Control(uint16_t duty)
 {
-    g_dshot_throttle[1] = duty;
+    g_dshot_logical[1] = DShot_NormalizeThrottle(duty);
+    DShot_MapLogicalToChannels(g_dshot_logical[0],
+                               g_dshot_logical[1],
+                               g_dshot_logical[2],
+                               g_dshot_logical[3]);
     TIM1_DShot_SendFrame(g_dshot_throttle[0],
                          g_dshot_throttle[1],
                          g_dshot_throttle[2],
@@ -227,7 +275,11 @@ void MOS2_Control(uint16_t duty)
 
 void MOS4_Control(uint16_t duty)
 {
-    g_dshot_throttle[3] = duty;
+    g_dshot_logical[3] = DShot_NormalizeThrottle(duty);
+    DShot_MapLogicalToChannels(g_dshot_logical[0],
+                               g_dshot_logical[1],
+                               g_dshot_logical[2],
+                               g_dshot_logical[3]);
     TIM1_DShot_SendFrame(g_dshot_throttle[0],
                          g_dshot_throttle[1],
                          g_dshot_throttle[2],
