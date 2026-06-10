@@ -9,7 +9,6 @@ uint8_t pid_task_flag = 0; // pid中断标志，1表示定时器中断触发，0
 float Target_Pitch = 0.0f; // 设定目标俯仰角
 float Target_Roll = 0.0f; // 设定目标横滚角
 float Target_Yaw = 0.0f; // 设定目标偏航角
-float Target_Alt = 0.0f; //设定目标高度
 
 static float gyro_bias_x = -26.0f; // 陀螺仪X轴零偏(原始LSB)
 static float gyro_bias_y = -3.0f; // 陀螺仪Y轴零偏(原始LSB)
@@ -34,12 +33,12 @@ float Limit_Output(float value, float max)
 }
 
 // PID初始化
-void PID_Init(PID_TypeDef* pid, float kp, float ki, float kd)
+static void PID_Init(PID_TypeDef* pid)
 {
     // memset(pid, 0, sizeof(PID_TypeDef)); // 清零结构体
-    pid->kp = kp;
-    pid->ki = ki;
-    pid->kd = kd;
+    pid->kp = 0.0f;
+    pid->ki = 0.0f;
+    pid->kd = 0.0f;
 
     pid->Target = 0;
     pid->Actual = 0;
@@ -90,14 +89,11 @@ PID_TypeDef pid_rate_pitch, pid_rate_roll, pid_rate_yaw;
 // PID参数初始化
 void PID_Contorl_Init(void)
 {
-    PID_Init(&pid_pitch, 0.0f, 0.00f, 0.0f);
-    PID_Init(&pid_roll, 0.0f, 0.00f, 0.0f);
-    PID_Init(&pid_yaw, 0.0f, 0.00f, 0.0f);
-    PID_Init(&pid_alt, 0.0f, 0.00f, 0.0f);
+    PID_Init(&pid_pitch);
+    PID_Init(&pid_roll);
 
-    PID_Init(&pid_rate_pitch, 0.0f, 0.00f, 0.0f);
-    PID_Init(&pid_rate_roll, 0.0f, 0.00f, 0.0f);
-    PID_Init(&pid_rate_yaw, 0.0f, 0.00f, 0.0f);
+    PID_Init(&pid_rate_pitch);
+    PID_Init(&pid_rate_roll);
 }
 
 // PID计算
@@ -188,7 +184,7 @@ void PID_Pitch_Roll_Combined(float actual_pitch, float actual_roll)
 
     static float gyro_pitch_lpf = 0.0f; // Pitch轴滤波状态
     static float gyro_roll_lpf = 0.0f; // Roll轴滤波状态
-    static uint8_t gyro_dbg_div = 0U; // 调试串口分频: 500Hz控制环下, 25次约50ms
+    // static uint8_t gyro_dbg_div = 0U; // 调试串口分频: 500Hz控制环下, 25次约50ms
     float pitch_error_deg = 0.0f; // Pitch角误差(单位:deg)，用于软死区处理
     float roll_error_deg = 0.0f; // Roll角误差(单位:deg)，用于软死区处理
 

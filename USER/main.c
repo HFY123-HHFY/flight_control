@@ -2,7 +2,7 @@
 
 /*
 407_飞控
-初始化红灯亮-校准陀螺仪蓝灯亮-锁定油门绿灯亮-可以正常起飞时灯全灭
+初始化完成红灯亮蜂鸣器响-校准陀螺仪蓝灯亮-锁定油门绿灯亮-可以正常起飞时灯全灭
 */
 
 int main(void)
@@ -73,14 +73,13 @@ CAN总线调试:
 /*
 OLED:
 */ 
-//		OLED_Clear();
-//		OLED_Printf(0,0,OLED_8X16,"%d",Timer_Bsp_t);
-//		OLED_Update();
+		// OLED_Clear();
+		// OLED_Printf(0,0,OLED_8X16,"%d",Timer_Bsp_t);
+		// OLED_Update();
 
 /*
 电机调试:
 */
-		// 1-右转 ，2-右转
 		// TIM1_DShot_Write(0, 0, 0, 0); // 四路同步下发DShot油门
 
 /*
